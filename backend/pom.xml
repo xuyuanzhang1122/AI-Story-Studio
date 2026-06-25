@@ -122,6 +122,13 @@
 			<artifactId>spring-boot-starter-amqp</artifactId>
 		</dependency>
 
+		<!-- Apache POI: 解析 .xlsx 剧本分镜表格导入 -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.5</version>
+		</dependency>
+
 		<!--	如果使用的是Java 9及以上的版本，oss则需要添加以下JAXB相关依赖。-->
 		<dependency>
 			<groupId>javax.xml.bind</groupId>

@@ -3,6 +3,7 @@ import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import StoryboardRow from './StoryboardRow.vue'
 import LoadingSpinner from '@/components/base/LoadingSpinner.vue'
+import { importApi } from '@/api/import'
 
 const editorStore = useEditorStore()
 
@@ -249,6 +250,54 @@ const handleParseScript = async () => {
   }
 }
 
+// ============== Excel 导入 ==============
+const importFileInput = ref<HTMLInputElement | null>(null)
+const isImporting = ref(false)
+
+const handleClickImport = () => {
+  if (isImporting.value) return
+  importFileInput.value?.click()
+}
+
+const handleImportFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // 先重置，避免选同一文件不触发 change
+  input.value = ''
+  if (!file) return
+  if (!editorStore.projectId) {
+    window.$message?.error('项目尚未加载')
+    return
+  }
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    window.$message?.error('仅支持 .xlsx 格式的分镜表格')
+    return
+  }
+
+  isImporting.value = true
+  try {
+    const summary = await importApi.importStoryboardExcel(editorStore.projectId, file)
+    // 刷新所有受影响的数据
+    await Promise.all([
+      editorStore.fetchShots(),
+      editorStore.fetchCharacters(),
+      editorStore.fetchScenes(),
+      editorStore.fetchProps(),
+    ])
+    window.$message?.success(
+      `导入成功：新增 ${summary.shotsCreated} 条分镜，涉及角色 ${summary.charactersCreated} / 场景 ${summary.scenesCreated} / 道具 ${summary.propsCreated}`
+    )
+  } catch (error: any) {
+    console.error('[StoryboardTable] Excel import failed:', error)
+    // axios 拦截器已 toast；这里兜底
+    if (!error?.message?.includes('网络') && !window.$message) {
+      alert(error?.message || '导入失败，请检查 Excel 格式')
+    }
+  } finally {
+    isImporting.value = false
+  }
+}
+
 // Handle cancel parse
 const handleCancelParse = () => {
   if (isParsing.value && parseAbortController) {
@@ -353,6 +402,28 @@ computed(() => {
 
       <!-- Add Button Group -->
       <div class="flex items-center gap-2">
+        <!-- Hidden file input for Excel import -->
+        <input
+          ref="importFileInput"
+          type="file"
+          accept=".xlsx"
+          class="hidden"
+          @change="handleImportFileChange"
+        />
+
+        <!-- Import Storyboard Excel Button -->
+        <button
+          class="flex items-center gap-2 px-4 py-2 bg-bg-subtle text-text-secondary font-medium text-sm rounded hover:bg-bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="isImporting"
+          :title="'导入 MochiAni 风格的分镜表格 (.xlsx)，包含分镜/出场人物/场景/道具四个 Sheet'"
+          @click="handleClickImport"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5 5 5M12 5v12"></path>
+          </svg>
+          {{ isImporting ? '导入中…' : '导入分镜表格' }}
+        </button>
+
         <!-- AI Parse Script Button -->
         <button
           class="flex items-center gap-2 px-4 py-2 bg-bg-subtle text-text-secondary font-medium text-sm rounded hover:bg-bg-hover transition-colors"
