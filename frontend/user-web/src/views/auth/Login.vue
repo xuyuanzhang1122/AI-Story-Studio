@@ -121,8 +121,8 @@ const handleKeydown = (e: KeyboardEvent, action: 'sendCode' | 'login') => {
       <!-- Logo and title -->
       <div class="text-center mb-8">
         <div class="inline-block mb-4">
-          <div class="w-16 h-16 rounded-lg bg-[#8B5CF6] flex items-center justify-center">
-            <span class="text-lg font-bold leading-none text-white">红鹦鹉</span>
+          <div class="w-16 h-16 rounded-lg overflow-hidden">
+            <img src="@/assets/logo.svg" alt="红鹦鹉漫剧" class="w-full h-full object-cover" />
           </div>
         </div>
         <h1 class="text-3xl font-bold text-text-primary mb-2">红鹦鹉漫剧</h1>
