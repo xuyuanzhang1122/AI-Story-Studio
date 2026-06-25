@@ -218,7 +218,7 @@ const handleShowAllProjects = async () => {
       <div class="home-hero-panel flex-1 mb-4 rounded-xl overflow-hidden min-h-[220px]">
         <LobeHero
           :title="heroTitle"
-          description="用 AI（爱）叙事，传递爱与快乐"
+          description="用 AI（爱）叙事，传递希望与快乐"
         />
       </div>
 
