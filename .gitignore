@@ -1,0 +1,16 @@
+# Personal notes / agent files
+AGENTS.md
+带完成.md
+
+# Backend local runtime artifacts
+backend/uploads/
+backend/mvn-spring-boot.log
+backend/mvn-spring-boot.err.log
+backend/target/
+backend/logs/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
