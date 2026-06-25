@@ -291,7 +291,7 @@ public class CharacterLibraryServiceImpl implements CharacterLibraryService {
         }
 
         try {
-            // 上传文件到OSS
+            // 保存文件到当前配置的存储服务
             String url = storageService.upload(
                     file.getInputStream(),
                     "character_" + characterId + "_" + file.getOriginalFilename(),

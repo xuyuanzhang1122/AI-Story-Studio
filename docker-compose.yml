@@ -70,8 +70,13 @@ services:
       RABBITMQ_USERNAME: admin
       RABBITMQ_PASSWORD: admin123
       RABBITMQ_VHOST: /
+      STORAGE_PROVIDER: local
+      LOCAL_STORAGE_PATH: /app/uploads
+      LOCAL_STORAGE_URL_PREFIX: /uploads
     ports:
       - "8080:8080"
+    volumes:
+      - backend_uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -101,6 +106,7 @@ volumes:
   mysql_data:
   redis_data:
   rabbitmq_data:
+  backend_uploads:
 
 networks:
   ai-studio-network:

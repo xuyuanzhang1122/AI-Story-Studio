@@ -1,5 +1,6 @@
 package com.ym.ai_story_studio_server.service;
 
+import com.ym.ai_story_studio_server.config.StorageProperties;
 import com.ym.ai_story_studio_server.entity.Asset;
 import com.ym.ai_story_studio_server.entity.AssetVersion;
 import com.ym.ai_story_studio_server.mapper.AssetMapper;
@@ -24,6 +25,7 @@ public class AssetCreationService {
 
     private final AssetMapper assetMapper;
     private final AssetVersionMapper assetVersionMapper;
+    private final StorageProperties storageProperties;
 
     /**
      * 创建资产并保存第一个版本
@@ -32,7 +34,7 @@ public class AssetCreationService {
      * @param ownerType 归属对象类型 (如: SHOT, PCHAR, PSCENE, LIB_CHAR, LIB_SCENE)
      * @param ownerId 归属对象ID
      * @param assetType 资产类型 (如: SHOT_IMG, VIDEO)
-     * @param ossUrl OSS存储的URL
+     * @param ossUrl 当前存储服务返回的URL
      * @param prompt 生成提示词
      * @param model AI模型
      * @param aspectRatio 画幅比例
@@ -68,7 +70,7 @@ public class AssetCreationService {
         version.setAssetId(asset.getId());
         version.setVersionNo(1);
         version.setSource("AI");
-        version.setProvider("OSS");
+        version.setProvider(getStorageProvider());
         version.setUrl(ossUrl);
         version.setPrompt(prompt);
         version.setStatus("READY");
@@ -104,5 +106,10 @@ public class AssetCreationService {
         }
         json.append("}");
         return json.toString();
+    }
+
+    private String getStorageProvider() {
+        String provider = storageProperties.getProvider();
+        return provider == null || provider.isBlank() ? "LOCAL" : provider.toUpperCase();
     }
 }

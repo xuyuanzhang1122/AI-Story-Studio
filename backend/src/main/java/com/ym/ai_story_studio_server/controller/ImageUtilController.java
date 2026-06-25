@@ -41,16 +41,16 @@ public class ImageUtilController {
             // 1. 拼接图片
             byte[] mergedImageBytes = imageMergeUtil.mergeImagesHorizontally(request.imageUrls());
 
-            // 2. 上传到OSS
-            String ossUrl = storageService.uploadImageBytes(
+            // 2. 保存到当前配置的存储服务
+            String mergedImageUrl = storageService.uploadImageBytes(
                     mergedImageBytes,
                     "merged_" + System.currentTimeMillis() + ".png"
             );
 
-            log.info("图片拼接并上传成功: {}", ossUrl);
+            log.info("图片拼接并保存成功: {}", mergedImageUrl);
 
             Map<String, String> response = new HashMap<>();
-            response.put("mergedImageUrl", ossUrl);
+            response.put("mergedImageUrl", mergedImageUrl);
 
             return Result.success(response);
 

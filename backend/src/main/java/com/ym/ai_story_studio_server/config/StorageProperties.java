@@ -28,6 +28,9 @@ import org.springframework.stereotype.Component;
  *     access-key-secret: ${OSS_ACCESS_KEY_SECRET:默认值}
  *     region: cn-hangzhou
  *     url-prefix: https://yuanmeng-logo.oss-cn-hangzhou.aliyuncs.com
+ *   local:
+ *     base-path: ./uploads
+ *     url-prefix: /uploads
  * </pre>
  *
  * @author Roo (Prometheus)
@@ -40,14 +43,19 @@ public class StorageProperties {
 
     /**
      * 存储提供商类型
-     * <p>支持: oss (阿里云OSS), minio (MinIO) - V2规划
+     * <p>支持: local (本地文件), oss (阿里云OSS), minio (MinIO) - V2规划
      */
-    private String provider = "oss";
+    private String provider = "local";
 
     /**
      * 阿里云OSS配置
      */
     private OssConfig oss = new OssConfig();
+
+    /**
+     * 本地文件存储配置
+     */
+    private LocalConfig local = new LocalConfig();
 
     /**
      * 阿里云OSS配置项
@@ -90,6 +98,25 @@ public class StorageProperties {
          * <p>如果为空，则使用默认OSS域名
          */
         private String urlPrefix;
+    }
+
+    /**
+     * 本地文件存储配置项
+     */
+    @Data
+    public static class LocalConfig {
+
+        /**
+         * 本地文件保存根目录
+         * <p>支持相对路径和绝对路径。相对路径基于应用启动目录解析。
+         */
+        private String basePath = "./uploads";
+
+        /**
+         * 对外访问URL前缀
+         * <p>默认由Spring静态资源映射暴露为 /uploads/**
+         */
+        private String urlPrefix = "/uploads";
     }
 }
 // {{END_MODIFICATIONS}}

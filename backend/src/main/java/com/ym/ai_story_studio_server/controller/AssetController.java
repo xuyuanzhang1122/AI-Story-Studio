@@ -13,6 +13,7 @@ import com.ym.ai_story_studio_server.util.UserContext;
 import com.ym.ai_story_studio_server.dto.asset.AssetVersionVO;
 import com.ym.ai_story_studio_server.dto.asset.SetCurrentVersionRequest;
 import com.ym.ai_story_studio_server.service.AssetService;
+import com.ym.ai_story_studio_server.service.StorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,7 @@ import java.util.List;
 public class AssetController {
 
     private final AssetService assetService;
+    private final StorageService storageService;
 
     /**
      * 获取资产版本历史列表
@@ -146,7 +148,19 @@ public class AssetController {
         try {
             log.info("收到下载图片请求, url: {}", request.url());
             
-            // 从 URL 下载资源
+            if (request.url().startsWith("/")) {
+                try (InputStream inputStream = storageService.download(request.url())) {
+                    byte[] imageBytes = inputStream.readAllBytes();
+                    String contentType = inferContentType(request.url());
+
+                    log.info("本地资源读取成功, 大小: {} bytes, contentType: {}", imageBytes.length, contentType);
+
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.parseMediaType(contentType))
+                            .body(imageBytes);
+                }
+            }
+
             URL imageUrl = new URL(request.url());
             java.net.URLConnection connection = imageUrl.openConnection();
             connection.setConnectTimeout(15000);
@@ -157,20 +171,7 @@ public class AssetController {
                 // 先尝试从响应获取 content type，再按扩展名兜底
                 String contentType = connection.getContentType();
                 if (contentType == null || contentType.isBlank()) {
-                    String urlStr = request.url().toLowerCase();
-                    if (urlStr.endsWith(".png")) {
-                        contentType = "image/png";
-                    } else if (urlStr.endsWith(".jpg") || urlStr.endsWith(".jpeg")) {
-                        contentType = "image/jpeg";
-                    } else if (urlStr.endsWith(".gif")) {
-                        contentType = "image/gif";
-                    } else if (urlStr.endsWith(".webp")) {
-                        contentType = "image/webp";
-                    } else if (urlStr.endsWith(".mp4")) {
-                        contentType = "video/mp4";
-                    } else {
-                        contentType = "application/octet-stream";
-                    }
+                    contentType = inferContentType(request.url());
                 }
 
                 log.info("资源下载成功, 大小: {} bytes, contentType: {}", imageBytes.length, contentType);
@@ -189,5 +190,21 @@ public class AssetController {
      * 下载图片请求DTO
      */
     public record DownloadFromUrlRequest(String url) {}
+
+    private String inferContentType(String url) {
+        String urlStr = url.toLowerCase();
+        if (urlStr.endsWith(".png")) {
+            return "image/png";
+        } else if (urlStr.endsWith(".jpg") || urlStr.endsWith(".jpeg")) {
+            return "image/jpeg";
+        } else if (urlStr.endsWith(".gif")) {
+            return "image/gif";
+        } else if (urlStr.endsWith(".webp")) {
+            return "image/webp";
+        } else if (urlStr.endsWith(".mp4")) {
+            return "video/mp4";
+        }
+        return "application/octet-stream";
+    }
 }
 // {{END_MODIFICATIONS}}

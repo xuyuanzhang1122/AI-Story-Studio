@@ -10,6 +10,7 @@ package com.ym.ai_story_studio_server.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ym.ai_story_studio_server.common.ResultCode;
+import com.ym.ai_story_studio_server.config.StorageProperties;
 import com.ym.ai_story_studio_server.dto.asset.AssetVersionVO;
 import com.ym.ai_story_studio_server.dto.asset.SetCurrentVersionRequest;
 import com.ym.ai_story_studio_server.entity.Asset;
@@ -55,6 +56,7 @@ public class AssetServiceImpl implements AssetService {
     private final AssetRefMapper assetRefMapper;
     private final ProjectMapper projectMapper;
     private final StorageService storageService;
+    private final StorageProperties storageProperties;
 
     /**
      * 验证资产存在且用户有权限访问
@@ -185,7 +187,7 @@ public class AssetServiceImpl implements AssetService {
 
         log.info("生成新版本号: {}", newVersionNo);
 
-        // 上传文件到OSS
+        // 上传文件到当前配置的存储服务
         String url;
         try {
             url = storageService.upload(
@@ -205,7 +207,7 @@ public class AssetServiceImpl implements AssetService {
         newVersion.setAssetId(assetId);
         newVersion.setVersionNo(newVersionNo);
         newVersion.setSource("UPLOAD");
-        newVersion.setProvider("OSS"); // 根据StorageService实现自动确定
+        newVersion.setProvider(getStorageProvider());
         newVersion.setUrl(url);
         newVersion.setObjectKey(extractObjectKey(url)); // 从URL中提取ObjectKey
         newVersion.setStatus("READY");
@@ -220,7 +222,7 @@ public class AssetServiceImpl implements AssetService {
                 assetId,
                 newVersionNo,
                 "UPLOAD",
-                "OSS",
+                getStorageProvider(),
                 url,
                 newVersion.getObjectKey(),
                 null,
@@ -284,7 +286,7 @@ public class AssetServiceImpl implements AssetService {
                 String contentType = "image/" + fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
                 log.info("提取文件名: {}, contentType: {}", fileName, contentType);
 
-                // 上传到OSS
+                // 上传到当前配置的存储服务
                 url = storageService.upload(
                         new ByteArrayInputStream(imageBytes),
                         fileName,
@@ -303,7 +305,7 @@ public class AssetServiceImpl implements AssetService {
         newVersion.setAssetId(assetId);
         newVersion.setVersionNo(newVersionNo);
         newVersion.setSource("UPLOAD");
-        newVersion.setProvider("OSS");
+        newVersion.setProvider(getStorageProvider());
         newVersion.setUrl(url);
         newVersion.setObjectKey(extractObjectKey(url));
         newVersion.setStatus("READY");
@@ -318,7 +320,7 @@ public class AssetServiceImpl implements AssetService {
                 assetId,
                 newVersionNo,
                 "UPLOAD",
-                "OSS",
+                getStorageProvider(),
                 url,
                 newVersion.getObjectKey(),
                 null,
@@ -396,12 +398,30 @@ public class AssetServiceImpl implements AssetService {
         if (url == null || url.isEmpty()) {
             return null;
         }
+        StorageProperties.LocalConfig localConfig = storageProperties.getLocal();
+        String localUrlPrefix = localConfig != null && localConfig.getUrlPrefix() != null
+                ? localConfig.getUrlPrefix().replaceAll("/+$", "")
+                : "/uploads";
+        if (!localUrlPrefix.startsWith("/")) {
+            localUrlPrefix = "/" + localUrlPrefix;
+        }
+        String normalizedUrl = url.replace('\\', '/');
+        int localPrefixIndex = normalizedUrl.indexOf(localUrlPrefix + "/");
+        if (localPrefixIndex >= 0) {
+            return normalizedUrl.substring(localPrefixIndex + localUrlPrefix.length() + 1);
+        }
+
         // 简单实现:提取域名后的路径部分
         int domainEndIndex = url.indexOf('/', url.indexOf("//") + 2);
         if (domainEndIndex != -1 && domainEndIndex < url.length() - 1) {
             return url.substring(domainEndIndex + 1);
         }
         return null;
+    }
+
+    private String getStorageProvider() {
+        String provider = storageProperties.getProvider();
+        return provider == null || provider.isBlank() ? "LOCAL" : provider.toUpperCase();
     }
 
     /**

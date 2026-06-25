@@ -4,7 +4,11 @@ import com.ym.ai_story_studio_server.interceptor.JwtInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.util.StringUtils;
+
+import java.nio.file.Paths;
 
 /**
  * Web配置类
@@ -40,6 +44,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private final JwtInterceptor jwtInterceptor;
+    private final StorageProperties storageProperties;
 
     /**
      * 注册拦截器
@@ -48,6 +53,8 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        String uploadPathPattern = getLocalUploadHandlerPattern();
+
         registry.addInterceptor(jwtInterceptor)
                 // 拦截所有路径
                 .addPathPatterns("/**")
@@ -55,11 +62,39 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/health",              // 健康检查
                         "/api/auth/**",             // 认证相关接口（登录、注册、发送验证码等）
+                        uploadPathPattern,           // 本地化上传文件访问
                         "/error",                   // Spring Boot错误页面
                         "/favicon.ico",             // 浏览器图标
                         "/actuator/**"              // Spring Boot Actuator端点（如果启用）
                 )
                 // 拦截器执行顺序（数字越小越先执行）
                 .order(1);
+    }
+
+    /**
+     * 暴露本地上传目录，供角色缩略图、资产图片等直接访问。
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        StorageProperties.LocalConfig localConfig = storageProperties.getLocal();
+        String basePath = localConfig != null && StringUtils.hasText(localConfig.getBasePath())
+                ? localConfig.getBasePath()
+                : "./uploads";
+
+        String resourceLocation = Paths.get(basePath).toAbsolutePath().normalize().toUri().toString();
+        registry.addResourceHandler(getLocalUploadHandlerPattern())
+                .addResourceLocations(resourceLocation);
+    }
+
+    private String getLocalUploadHandlerPattern() {
+        StorageProperties.LocalConfig localConfig = storageProperties.getLocal();
+        String urlPrefix = localConfig != null && StringUtils.hasText(localConfig.getUrlPrefix())
+                ? localConfig.getUrlPrefix()
+                : "/uploads";
+        String normalizedPrefix = urlPrefix.replaceAll("/+$", "");
+        if (!normalizedPrefix.startsWith("/")) {
+            normalizedPrefix = "/" + normalizedPrefix;
+        }
+        return normalizedPrefix + "/**";
     }
 }

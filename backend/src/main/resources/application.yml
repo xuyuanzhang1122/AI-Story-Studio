@@ -77,8 +77,13 @@ jwt:
 
 # 存储服务配置
 storage:
-  # 存储提供商: oss (阿里云OSS), minio (MinIO - V2规划)
-  provider: oss
+  # 存储提供商: local (本地文件), oss (阿里云OSS), minio (MinIO - V2规划)
+  provider: ${STORAGE_PROVIDER:local}
+  local:
+    # 本地化部署阶段保存上传图片/视频的目录
+    base-path: ${LOCAL_STORAGE_PATH:./uploads}
+    # 前端访问本地文件的URL前缀
+    url-prefix: ${LOCAL_STORAGE_URL_PREFIX:/uploads}
   oss:
     # OSS访问端点（根据区域选择）
     endpoint: oss-cn-hangzhou.aliyuncs.com

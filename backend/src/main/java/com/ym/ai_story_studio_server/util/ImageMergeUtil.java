@@ -1,5 +1,7 @@
 package com.ym.ai_story_studio_server.util;
 
+import com.ym.ai_story_studio_server.service.StorageService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -23,11 +25,14 @@ import java.util.List;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class ImageMergeUtil {
 
     private static final int PADDING = 20; // 图片之间的间距
     private static final int MAX_HEIGHT = 1024; // 最大高度
     private static final Color BACKGROUND_COLOR = Color.WHITE; // 背景颜色
+
+    private final StorageService storageService;
 
     /**
      * 将多个图片URL横向拼接成一张图片
@@ -112,6 +117,12 @@ public class ImageMergeUtil {
      * 从URL下载图片
      */
     private BufferedImage downloadImage(String imageUrl) throws IOException {
+        if (imageUrl.startsWith("/")) {
+            try (InputStream in = storageService.download(imageUrl)) {
+                return ImageIO.read(in);
+            }
+        }
+
         URL url = new URL(imageUrl);
         try (InputStream in = url.openStream()) {
             return ImageIO.read(in);

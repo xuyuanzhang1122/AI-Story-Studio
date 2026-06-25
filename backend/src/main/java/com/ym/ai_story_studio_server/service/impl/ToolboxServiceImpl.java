@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ym.ai_story_studio_server.common.ResultCode;
+import com.ym.ai_story_studio_server.config.StorageProperties;
 import com.ym.ai_story_studio_server.dto.ai.ImageGenerateRequest;
 import com.ym.ai_story_studio_server.dto.ai.ImageGenerateResponse;
 import com.ym.ai_story_studio_server.dto.ai.TextGenerateRequest;
@@ -75,6 +76,7 @@ public class ToolboxServiceImpl implements ToolboxService {
     private final AssetMapper assetMapper;
     private final AssetVersionMapper assetVersionMapper;
     private final ObjectMapper objectMapper;
+    private final StorageProperties storageProperties;
 
     /**
      * 执行AI生成(统一入口)
@@ -441,7 +443,7 @@ public class ToolboxServiceImpl implements ToolboxService {
         version.setVersionNo(1);  // 使用versionNo而非version
         version.setUrl(resultUrl);  // 使用url而非storageUrl
         version.setSource("AI");  // 使用source而非uploadSource,值为AI
-        version.setProvider("OSS");  // 设置存储提供方
+        version.setProvider(getStorageProvider());  // 设置存储提供方
         version.setStatus("READY");  // 设置状态为READY
         version.setCreatedBy(userId);  // 设置创建人
         assetVersionMapper.insert(version);
@@ -449,5 +451,10 @@ public class ToolboxServiceImpl implements ToolboxService {
         log.info("工具箱结果保存成功 - assetId: {}, versionId: {}", asset.getId(), version.getId());
 
         return asset.getId();
+    }
+
+    private String getStorageProvider() {
+        String provider = storageProperties.getProvider();
+        return provider == null || provider.isBlank() ? "LOCAL" : provider.toUpperCase();
     }
 }

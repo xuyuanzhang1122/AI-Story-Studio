@@ -68,13 +68,13 @@ class StoragePropertiesTest {
     class DefaultValuesTests {
 
         @Test
-        @DisplayName("验证默认提供商为oss")
-        void defaultProvider_IsOss() {
+        @DisplayName("验证默认提供商为local")
+        void defaultProvider_IsLocal() {
             // Arrange
             StorageProperties properties = new StorageProperties();
 
             // Act & Assert
-            assertThat(properties.getProvider()).isEqualTo("oss");
+            assertThat(properties.getProvider()).isEqualTo("local");
         }
 
         @Test
@@ -85,6 +85,16 @@ class StoragePropertiesTest {
 
             // Act & Assert
             assertThat(properties.getOss()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("验证本地存储配置不为null")
+        void localConfig_IsNotNull() {
+            // Arrange
+            StorageProperties properties = new StorageProperties();
+
+            // Act & Assert
+            assertThat(properties.getLocal()).isNotNull();
         }
 
         @Test
@@ -101,6 +111,18 @@ class StoragePropertiesTest {
             assertThat(ossConfig.getAccessKeySecret()).isNull();
             assertThat(ossConfig.getRegion()).isNull();
             assertThat(ossConfig.getUrlPrefix()).isNull();
+        }
+
+        @Test
+        @DisplayName("本地存储配置字段默认值")
+        void localConfig_DefaultValues() {
+            // Arrange
+            StorageProperties properties = new StorageProperties();
+            StorageProperties.LocalConfig localConfig = properties.getLocal();
+
+            // Act & Assert
+            assertThat(localConfig.getBasePath()).isEqualTo("./uploads");
+            assertThat(localConfig.getUrlPrefix()).isEqualTo("/uploads");
         }
     }
 
@@ -241,8 +263,18 @@ class StoragePropertiesTest {
     }
 
     @Nested
-    @DisplayName("提供商切换测试")
-    class ProviderSwitchTests {
+        @DisplayName("提供商切换测试")
+        class ProviderSwitchTests {
+
+        @Test
+        @DisplayName("支持切换到local提供商")
+        void switchProvider_ToLocal() {
+            // Act
+            storageProperties.setProvider("local");
+
+            // Assert
+            assertThat(storageProperties.getProvider()).isEqualTo("local");
+        }
 
         @Test
         @DisplayName("支持切换到minio提供商")
