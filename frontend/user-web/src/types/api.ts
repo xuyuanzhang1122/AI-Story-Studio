@@ -207,6 +207,7 @@ export interface UpdateCharacterDTO {
   name?: string
   description?: string
   isActive?: boolean
+  thumbnailUrl?: string | null
 }
 
 export interface GenerateCharacterDTO {
@@ -278,6 +279,7 @@ export interface UpdateSceneDTO {
   name?: string
   description?: string
   isActive?: boolean
+  thumbnailUrl?: string | null
 }
 
 export interface GenerateSceneDTO {
@@ -359,12 +361,14 @@ export interface CreatePropDTO {
 export interface UpdatePropDTO {
   name?: string
   description?: string
+  thumbnailUrl?: string | null
 }
 
 export interface AddPropToProjectDTO {
-  libraryPropId: number
+  libraryPropId?: number | null
   displayName?: string
   overrideDescription?: string
+  thumbnailUrl?: string | null
 }
 
 export interface GeneratePropDTO {

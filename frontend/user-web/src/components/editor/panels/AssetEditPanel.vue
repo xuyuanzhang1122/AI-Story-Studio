@@ -1784,7 +1784,8 @@ const handleLocalImageUpload = async (event: Event) => {
             thumbnailUrl: ossUrl
           })
           await api.put(`/projects/${editorStore.projectId}/scenes/${assetId}`, {
-            librarySceneId: newLibraryScene.id
+            librarySceneId: newLibraryScene.id,
+            thumbnailUrl: ossUrl
           })
         }
         await editorStore.fetchScenes()
@@ -1808,7 +1809,8 @@ const handleLocalImageUpload = async (event: Event) => {
             thumbnailUrl: ossUrl
           })
           await api.put(`/projects/${editorStore.projectId}/props/${assetId}`, {
-            libraryPropId: newLibraryProp.id
+            libraryPropId: newLibraryProp.id,
+            thumbnailUrl: ossUrl
           })
         }
         await editorStore.fetchProps()
@@ -1832,7 +1834,8 @@ const handleLocalImageUpload = async (event: Event) => {
             thumbnailUrl: ossUrl
           })
           await api.put(`/projects/${editorStore.projectId}/characters/${assetId}`, {
-            libraryCharacterId: newLibraryChar.id
+            libraryCharacterId: newLibraryChar.id,
+            thumbnailUrl: ossUrl
           })
         }
         await editorStore.fetchCharacters()

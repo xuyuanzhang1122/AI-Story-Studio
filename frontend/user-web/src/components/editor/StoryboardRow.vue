@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import type { StoryboardShotVO } from '@/types/api'
 import { useEditorStore } from '@/stores/editor'
 import { usePanelManagerStore } from '@/stores/panelManager'
@@ -8,6 +8,9 @@ import api from '@/api/index'
 import AssetCell from './AssetCell.vue'
 import AssetGenerateModal from './AssetGenerateModal.vue'
 import AssetVersionModal from './AssetVersionModal.vue'
+import ScriptExpandModal from './ScriptExpandModal.vue'
+import AssetHoverPreview from './AssetHoverPreview.vue'
+import { highlightScript } from '@/utils/scriptHighlight'
 
 interface Props {
   shot: StoryboardShotVO
@@ -43,6 +46,67 @@ const showPropSelectModal = ref(false)  // 道具选择弹窗
 const generateModalType = ref<'shot_image' | 'video'>('shot_image')
 const versionModalAssetId = ref<number | null>(null)
 const assetVersions = ref<any[]>([])
+const maxTableCharacterTiles = 5
+const maxTablePropTiles = 3
+const rowHoverPreview = ref({
+  visible: false,
+  name: '',
+  imageUrl: null as string | null,
+  x: 0,
+  y: 0,
+})
+const pendingRowHoverKey = ref<string | null>(null)
+let rowHoverPreviewTimer: ReturnType<typeof setTimeout> | null = null
+const rowHoverPreviewDelay = 680
+
+const clearRowHoverPreviewTimer = () => {
+  if (rowHoverPreviewTimer) {
+    clearTimeout(rowHoverPreviewTimer)
+    rowHoverPreviewTimer = null
+  }
+}
+
+const showRowHoverPreview = (
+  event: MouseEvent,
+  payload: { key: string; name: string; imageUrl?: string | null }
+) => {
+  clearRowHoverPreviewTimer()
+  pendingRowHoverKey.value = payload.key
+  rowHoverPreview.value = {
+    visible: false,
+    name: payload.name,
+    imageUrl: payload.imageUrl || null,
+    x: event.clientX,
+    y: event.clientY,
+  }
+
+  rowHoverPreviewTimer = setTimeout(() => {
+    if (pendingRowHoverKey.value !== payload.key) return
+    rowHoverPreview.value = {
+      ...rowHoverPreview.value,
+      visible: true,
+    }
+    pendingRowHoverKey.value = null
+    rowHoverPreviewTimer = null
+  }, rowHoverPreviewDelay)
+}
+
+const moveRowHoverPreview = (event: MouseEvent) => {
+  if (!rowHoverPreview.value.visible && !pendingRowHoverKey.value) return
+  rowHoverPreview.value = {
+    ...rowHoverPreview.value,
+    x: event.clientX,
+    y: event.clientY,
+  }
+}
+
+const hideRowHoverPreview = () => {
+  clearRowHoverPreviewTimer()
+  pendingRowHoverKey.value = null
+  rowHoverPreview.value.visible = false
+}
+
+onUnmounted(clearRowHoverPreviewTimer)
 
 const startEditing = () => {
   editingText.value = props.shot.scriptText
@@ -65,6 +129,42 @@ const cancelEditing = () => {
 const displayScript = computed(() => {
   return props.shot.scriptText
 })
+
+// 富文本：把剧本里的角色 / 场景 / 道具 / 声纹 / 运镜标签等染色
+const expandModalCharacters = computed<string[]>(() =>
+  props.shot.characters.map(c => c.characterName).filter(Boolean) as string[]
+)
+const expandModalScenes = computed<string[]>(() =>
+  props.shot.scene?.sceneName ? [props.shot.scene.sceneName] : []
+)
+const expandModalProps = computed<string[]>(() =>
+  props.shot.props.map(p => p.propName).filter(Boolean) as string[]
+)
+const highlightedScript = computed(() =>
+  highlightScript(
+    props.shot.scriptText || '',
+    expandModalCharacters.value,
+    expandModalScenes.value,
+    expandModalProps.value,
+  )
+)
+
+// 放大编辑弹窗
+const showExpandModal = ref(false)
+const openExpandModal = () => { showExpandModal.value = true }
+const handleExpandModalSave = (newText: string) => {
+  props.onUpdateScript(newText)
+}
+
+// 一键复制剧本
+const handleCopyScript = async () => {
+  try {
+    await navigator.clipboard.writeText(props.shot.scriptText || '')
+    window.$message?.success('已复制分镜剧本')
+  } catch {
+    window.$message?.error('复制失败')
+  }
+}
 
 // 模糊人物名称过滤列表
 const vagueCharacterNames = [
@@ -865,106 +965,140 @@ const handleCopyThumbnail = async (url: string) => {
     </td>
 
     <!-- Script Text (Editable) -->
-    <td class="px-3 py-3 flex-1 min-w-[200px] max-w-[400px]">
-      <!-- Display Mode -->
-      <div
-        class="text-text-primary text-sm leading-relaxed cursor-pointer hover:bg-bg-subtle px-2 py-1 rounded-lg transition-colors whitespace-pre-wrap break-words"
-        @dblclick="startEditing"
-        title="双击编辑"
-      >
-        {{ displayScript }}
+    <td class="px-3 py-3 align-top flex-1 min-w-[200px] max-w-[400px]">
+      <div class="relative group/script">
+        <!-- 浮动工具栏：复制 / 放大 -->
+        <div class="absolute top-1 right-1 z-10 flex items-center gap-1 opacity-0 group-hover/script:opacity-100 transition-opacity">
+          <button
+            class="p-1 rounded bg-bg-elevated/90 border border-border-default text-text-tertiary hover:text-text-primary hover:bg-bg-hover transition-colors"
+            title="一键复制剧本"
+            @click.stop="handleCopyScript"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <rect x="9" y="9" width="11" height="11" rx="1.5"></rect>
+              <path d="M5 15V5a1 1 0 011-1h10"></path>
+            </svg>
+          </button>
+          <button
+            class="p-1 rounded bg-bg-elevated/90 border border-border-default text-text-tertiary hover:text-text-primary hover:bg-bg-hover transition-colors"
+            title="放大编辑"
+            @click.stop="openExpandModal"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"></path>
+            </svg>
+          </button>
+        </div>
+        <!-- 高亮显示（统一最大高度，溢出滚动） -->
+        <div
+          class="text-text-primary text-sm leading-relaxed cursor-pointer hover:bg-bg-subtle px-2 py-1 pr-12 rounded-lg transition-colors whitespace-pre-wrap break-words max-h-[180px] overflow-y-auto script-highlight"
+          @dblclick="startEditing"
+          title="双击编辑，或点击右上角放大按钮"
+          v-html="highlightedScript"
+        ></div>
       </div>
     </td>
 
     <!-- Characters -->
-    <td class="px-3 py-3 w-[140px]">
-      <div class="flex flex-col gap-1">
-        <!-- 已绑定的角色（胶囊样式：头像+名字） -->
+    <td class="px-3 py-3 w-[200px] align-top">
+      <div class="grid grid-cols-3 gap-2">
+        <!-- 已绑定的角色（原版正方形缩略图样式） -->
         <div
-          v-for="char in shot.characters.slice(0, 3)"
+          v-for="char in shot.characters.slice(0, maxTableCharacterTiles)"
           :key="char.bindingId"
-          class="relative group/bound"
+          class="relative group/bound aspect-square"
+          @mouseenter="showRowHoverPreview($event, { key: `character-${char.bindingId}`, name: char.characterName, imageUrl: char.thumbnailUrl })"
+          @mousemove="moveRowHoverPreview"
+          @mouseleave="hideRowHoverPreview"
         >
           <div
-            class="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-hover cursor-pointer hover:bg-bg-subtle transition-colors h-8"
+            class="w-full h-full rounded-lg bg-[#15181d] cursor-pointer hover:bg-bg-subtle transition-colors overflow-hidden flex items-center justify-center"
             @click="handleCharacterClick(char.characterId)"
             :title="char.characterName"
           >
-            <!-- 缩略图容器 -->
-            <div class="relative group/thumbnail">
-              <img
-                v-if="char.thumbnailUrl"
-                :src="char.thumbnailUrl"
-                :alt="char.characterName"
-                class="w-6 h-6 rounded object-cover flex-shrink-0"
-              >
-              <div
-                v-else
-                class="w-6 h-6 rounded bg-bg-subtle flex items-center justify-center text-text-tertiary text-xs font-bold flex-shrink-0"
-              >
-                {{ char.characterName?.[0] || '?' }}
-              </div>
-
+            <img
+              v-if="char.thumbnailUrl"
+              :src="char.thumbnailUrl"
+              :alt="char.characterName"
+              class="w-full h-full object-cover transition-transform duration-200 group-hover/bound:scale-105"
+            >
+            <div
+              v-else
+              class="w-full h-full flex items-center justify-center"
+            >
+              <svg class="w-7 h-7 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
             </div>
-            <span class="text-text-secondary text-xs font-medium truncate flex-1">{{ char.characterName }}</span>
           </div>
+          <div
+            v-if="pendingRowHoverKey === `character-${char.bindingId}`"
+            class="row-asset-thumb-wiper"
+          ></div>
           <!-- 解绑按钮（悬浮显示） -->
           <button
             @click.stop="handleUnbindCharacterFromTable(char.bindingId, char.characterName)"
-            class="absolute -top-1 -right-1 w-4 h-4 rounded bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-all opacity-0 group-hover/bound:opacity-100 z-10"
+            class="absolute -top-1 -right-1 w-5 h-5 rounded bg-red-500/90 flex items-center justify-center hover:bg-red-500 transition-all opacity-0 group-hover/bound:opacity-100 z-10"
             title="移除角色"
           >
-            <svg class="w-2.5 h-2.5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-3 h-3 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
         </div>
         <!-- 更多角色数量提示 -->
-        <span v-if="shot.characters.length > 3" class="text-text-tertiary text-xs h-8 flex items-center justify-center">
-          +{{ shot.characters.length - 3 }}更多
-        </span>
+        <div
+          v-if="shot.characters.length > maxTableCharacterTiles"
+          class="aspect-square rounded-lg bg-[#15181d] flex items-center justify-center text-text-tertiary text-xs"
+          :title="shot.characters.slice(maxTableCharacterTiles).map(c => c.characterName).join('、')"
+        >
+          +{{ shot.characters.length - maxTableCharacterTiles }}更多
+        </div>
         <!-- 从剧本提取的人物 -->
         <div
           v-for="charName in unboundCharacters.slice(0, 2)"
           :key="charName"
-          class="relative group/char"
+          class="relative group/char aspect-square"
+          @mouseenter="showRowHoverPreview($event, { key: `script-character-${charName}`, name: charName, imageUrl: getCharacterByName(charName)?.thumbnailUrl })"
+          @mousemove="moveRowHoverPreview"
+          @mouseleave="hideRowHoverPreview"
         >
           <div
             v-if="getCharacterByName(charName)?.thumbnailUrl"
-            class="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-hover cursor-pointer hover:bg-bg-subtle transition-colors h-8"
+            class="w-full h-full rounded-lg bg-[#15181d] cursor-pointer hover:bg-bg-subtle transition-colors overflow-hidden"
             @click="handleGenerateCharacterFromScript(charName)"
             :title="charName"
           >
-            <!-- 缩略图容器 -->
-            <div class="relative group/thumbnail">
-              <img
-                :src="getCharacterByName(charName)?.thumbnailUrl"
-                :alt="charName"
-                class="w-6 h-6 rounded object-cover"
-              >
-
-            </div>
-            <span class="text-text-secondary text-xs font-medium truncate flex-1">{{ charName }}</span>
+            <img
+              :src="getCharacterByName(charName)?.thumbnailUrl"
+              :alt="charName"
+              class="w-full h-full object-cover transition-transform duration-200 group-hover/char:scale-105"
+            >
           </div>
-          <!-- 否则显示标签 -->
+          <!-- 否则显示占位图标 -->
           <div
             v-else
             @click="handleGenerateCharacterFromScript(charName)"
-            class="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-hover cursor-pointer hover:bg-bg-subtle transition-colors h-8"
+            class="w-full h-full rounded-lg bg-[#15181d] cursor-pointer hover:bg-bg-subtle transition-colors flex items-center justify-center"
             :title="`点击生成角色: ${charName}`"
           >
-            <div class="w-6 h-6 rounded bg-bg-subtle flex items-center justify-center text-text-tertiary text-xs font-bold flex-shrink-0">
-              {{ charName?.[0] || '?' }}
-            </div>
-            <span class="text-text-secondary text-xs truncate flex-1">{{ charName }}</span>
+            <svg class="w-7 h-7 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
           </div>
+          <div
+            v-if="pendingRowHoverKey === `script-character-${charName}`"
+            class="row-asset-thumb-wiper"
+          ></div>
           <!-- 删除按钮（悬浮显示） -->
           <button
             @click.stop="handleDismissCharacter(charName)"
-            class="absolute -top-1 -right-1 w-4 h-4 rounded bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-all opacity-0 group-hover/char:opacity-100 z-10"
+            class="absolute -top-1 -right-1 w-5 h-5 rounded bg-red-500/90 flex items-center justify-center hover:bg-red-500 transition-all opacity-0 group-hover/char:opacity-100 z-10"
             title="删除"
           >
-            <svg class="w-2.5 h-2.5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-3 h-3 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
@@ -972,55 +1106,60 @@ const handleCopyThumbnail = async (url: string) => {
         <!-- 添加角色按钮 -->
         <button
           @click="handleAddCharacter"
-          class="h-8 rounded border-2 border-dashed border-border-default bg-transparent flex items-center justify-center gap-1 hover:bg-bg-subtle transition-colors"
+          class="aspect-square rounded-lg border-2 border-dashed border-border-default bg-transparent flex items-center justify-center hover:bg-bg-subtle transition-colors"
           title="添加角色"
         >
-          <svg class="w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
-          <span class="text-text-tertiary text-xs">添加</span>
         </button>
       </div>
     </td>
 
     <!-- Scene -->
-    <td class="px-3 py-3 w-[120px]">
-      <div class="flex flex-col gap-1">
+    <td class="px-3 py-3 w-[120px] align-top">
+      <div class="grid grid-cols-2 gap-2">
         <!-- 已绑定的场景 -->
         <div
           v-if="shot.scene"
-          class="relative group/bound"
+          class="relative group/bound aspect-square"
+          @mouseenter="showRowHoverPreview($event, { key: `scene-${shot.scene.bindingId}`, name: shot.scene.sceneName, imageUrl: shot.scene.thumbnailUrl })"
+          @mousemove="moveRowHoverPreview"
+          @mouseleave="hideRowHoverPreview"
         >
           <div
-            class="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-hover cursor-pointer hover:bg-bg-subtle transition-colors h-8"
+            class="w-full h-full rounded-lg bg-[#15181d] cursor-pointer hover:bg-bg-subtle transition-colors overflow-hidden flex items-center justify-center"
             @click="handleSceneClick(shot.scene.sceneId)"
             :title="shot.scene.sceneName"
           >
-            <!-- 缩略图容器 -->
-            <div class="relative group/thumbnail">
-              <img
-                v-if="shot.scene.thumbnailUrl"
-                :src="shot.scene.thumbnailUrl"
-                :alt="shot.scene.sceneName"
-                class="w-6 h-6 rounded object-cover flex-shrink-0"
-              >
-              <div
-                v-else
-                class="w-6 h-6 rounded bg-bg-subtle flex items-center justify-center text-text-tertiary text-xs flex-shrink-0"
-              >
-                🏞️
-              </div>
-
+            <img
+              v-if="shot.scene.thumbnailUrl"
+              :src="shot.scene.thumbnailUrl"
+              :alt="shot.scene.sceneName"
+              class="w-full h-full object-cover transition-transform duration-200 group-hover/bound:scale-105"
+            >
+            <div
+              v-else
+              class="w-full h-full flex items-center justify-center"
+            >
+              <svg class="w-7 h-7 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <path d="M21 15l-5-5L5 21"></path>
+              </svg>
             </div>
-            <span class="text-text-secondary text-xs font-medium truncate flex-1">{{ shot.scene.sceneName }}</span>
           </div>
+          <div
+            v-if="pendingRowHoverKey === `scene-${shot.scene.bindingId}`"
+            class="row-asset-thumb-wiper"
+          ></div>
           <!-- 解绑按钮（悬浮显示） -->
           <button
             @click.stop="handleUnbindSceneFromTable(shot.scene.bindingId, shot.scene.sceneName)"
-            class="absolute -top-1 -right-1 w-4 h-4 rounded bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-all opacity-0 group-hover/bound:opacity-100 z-10"
+            class="absolute -top-1 -right-1 w-5 h-5 rounded bg-red-500/90 flex items-center justify-center hover:bg-red-500 transition-all opacity-0 group-hover/bound:opacity-100 z-10"
             title="移除场景"
           >
-            <svg class="w-2.5 h-2.5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-3 h-3 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
@@ -1028,13 +1167,12 @@ const handleCopyThumbnail = async (url: string) => {
         <!-- 添加场景按钮 -->
         <button
           @click="handleAddScene"
-          class="h-8 rounded border-2 border-dashed border-border-default bg-transparent flex items-center justify-center gap-1 hover:bg-bg-subtle transition-colors"
+          class="aspect-square rounded-lg border-2 border-dashed border-border-default bg-transparent flex items-center justify-center hover:bg-bg-subtle transition-colors"
           title="添加场景"
         >
-          <svg class="w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
-          <span class="text-text-tertiary text-xs">添加</span>
         </button>
       </div>
     </td>
@@ -1043,58 +1181,68 @@ const handleCopyThumbnail = async (url: string) => {
     <td class="w-0 hidden"></td>
 
     <!-- Prop 道具画像 -->
-    <td class="px-3 py-3 w-[120px]">
-      <div class="flex flex-col gap-1">
+    <td class="px-3 py-3 w-[120px] align-top">
+      <div class="grid grid-cols-2 gap-2">
         <!-- 已绑定的道具 -->
         <div
-          v-for="prop in shot.props.slice(0, 3)"
+          v-for="prop in shot.props.slice(0, maxTablePropTiles)"
           :key="prop.bindingId"
-          class="relative group/bound"
+          class="relative group/bound aspect-square"
+          @mouseenter="showRowHoverPreview($event, { key: `prop-${prop.bindingId}`, name: prop.propName, imageUrl: prop.thumbnailUrl })"
+          @mousemove="moveRowHoverPreview"
+          @mouseleave="hideRowHoverPreview"
         >
           <div
-            class="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-hover cursor-pointer hover:bg-bg-subtle transition-colors h-8"
+            class="w-full h-full rounded-lg bg-[#15181d] cursor-pointer hover:bg-bg-subtle transition-colors overflow-hidden flex items-center justify-center"
             @click="handlePropClick(prop.propId)"
             :title="prop.propName"
           >
-            <!-- 缩略图容器 -->
-            <div class="relative group/thumbnail">
-              <img
-                v-if="prop.thumbnailUrl"
-                :src="prop.thumbnailUrl"
-                :alt="prop.propName"
-                class="w-6 h-6 rounded object-cover flex-shrink-0"
-              >
-              <div
-                v-else
-                class="w-6 h-6 rounded bg-bg-subtle flex items-center justify-center text-text-tertiary text-xs flex-shrink-0"
-              >
-                🔧
-              </div>
-
+            <img
+              v-if="prop.thumbnailUrl"
+              :src="prop.thumbnailUrl"
+              :alt="prop.propName"
+              class="w-full h-full object-cover transition-transform duration-200 group-hover/bound:scale-105"
+            >
+            <div
+              v-else
+              class="w-full h-full flex items-center justify-center"
+            >
+              <svg class="w-7 h-7 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+              </svg>
             </div>
-            <span class="text-text-secondary text-xs font-medium truncate flex-1">{{ prop.propName }}</span>
           </div>
+          <div
+            v-if="pendingRowHoverKey === `prop-${prop.bindingId}`"
+            class="row-asset-thumb-wiper"
+          ></div>
           <!-- 解绑按钮（悬浮显示） -->
           <button
             @click.stop="handleUnbindPropFromTable(prop.bindingId, prop.propName)"
-            class="absolute -top-1 -right-1 w-4 h-4 rounded bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-all opacity-0 group-hover/bound:opacity-100 z-10"
+            class="absolute -top-1 -right-1 w-5 h-5 rounded bg-red-500/90 flex items-center justify-center hover:bg-red-500 transition-all opacity-0 group-hover/bound:opacity-100 z-10"
             title="移除道具"
           >
-            <svg class="w-2.5 h-2.5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-3 h-3 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
         </div>
+        <div
+          v-if="shot.props.length > maxTablePropTiles"
+          class="aspect-square rounded-lg bg-[#15181d] flex items-center justify-center text-text-tertiary text-xs"
+          :title="shot.props.slice(maxTablePropTiles).map(p => p.propName).join('、')"
+        >
+          +{{ shot.props.length - maxTablePropTiles }}
+        </div>
         <!-- 添加道具按钮 -->
         <button
           @click="handleAddProp"
-          class="h-8 rounded border-2 border-dashed border-border-default bg-transparent flex items-center justify-center gap-1 hover:bg-bg-subtle transition-colors"
+          class="aspect-square rounded-lg border-2 border-dashed border-border-default bg-transparent flex items-center justify-center hover:bg-bg-subtle transition-colors"
           title="添加道具"
         >
-          <svg class="w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
-          <span class="text-text-tertiary text-xs">添加</span>
         </button>
       </div>
     </td>
@@ -1634,4 +1782,54 @@ const handleCopyThumbnail = async (url: string) => {
       </div>
     </Transition>
   </Teleport>
+
+  <!-- 放大编辑弹窗 -->
+  <ScriptExpandModal
+    :show="showExpandModal"
+    :shot-no="shot.shotNo"
+    :script-text="shot.scriptText"
+    :characters="expandModalCharacters"
+    :scenes="expandModalScenes"
+    :props="expandModalProps"
+    :on-close="() => (showExpandModal = false)"
+    :on-save="handleExpandModalSave"
+  />
+
+  <AssetHoverPreview
+    :visible="rowHoverPreview.visible"
+    :name="rowHoverPreview.name"
+    :image-url="rowHoverPreview.imageUrl"
+    :x="rowHoverPreview.x"
+    :y="rowHoverPreview.y"
+    variant="compact"
+  />
 </template>
+
+<style scoped>
+/* 高亮文本内的滚动条更克制 */
+.script-highlight::-webkit-scrollbar { width: 4px; }
+.script-highlight::-webkit-scrollbar-thumb { background: #404040; border-radius: 2px; }
+
+.row-asset-thumb-wiper {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0.62) 50%, rgba(255, 255, 255, 0.12) 58%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.12));
+  background-size: 220% 100%, 100% 100%;
+  animation: row-asset-thumb-wiper-sweep 680ms ease-in-out forwards;
+}
+
+@keyframes row-asset-thumb-wiper-sweep {
+  from {
+    background-position: 120% 0, 0 0;
+  }
+
+  to {
+    background-position: -120% 0, 0 0;
+  }
+}
+</style>

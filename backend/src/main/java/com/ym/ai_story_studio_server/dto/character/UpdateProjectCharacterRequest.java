@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
  * @param displayName 项目内显示名称
  * @param overrideDescription 项目内覆盖描述
  * @param libraryCharacterId 新的角色库ID(用于重新关联)
+ * @param thumbnailUrl 缩略图URL(可选)
  * @author Roo (Prometheus)
  * @since 1.0.0
  */
@@ -18,6 +19,8 @@ public record UpdateProjectCharacterRequest(
         @Size(max = 5000, message = "覆盖描述不能超过5000个字符")
         String overrideDescription,
         
-        Long libraryCharacterId
+        Long libraryCharacterId,
+
+        String thumbnailUrl
 ) {
 }

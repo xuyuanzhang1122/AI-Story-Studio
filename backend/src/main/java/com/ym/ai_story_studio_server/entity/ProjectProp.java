@@ -39,6 +39,11 @@ public class ProjectProp {
     private String overrideDescription;
 
     /**
+     * 项目道具缩略图URL（自定义道具或项目内覆盖的图片）
+     */
+    private String thumbnailUrl;
+
+    /**
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)

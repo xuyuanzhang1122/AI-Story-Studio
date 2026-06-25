@@ -1270,15 +1270,15 @@ public class ShotServiceImpl implements ShotService {
                     if ("PPROP".equals(binding.getBindType())) {
                         ProjectProp prop = propMap.get(binding.getBindId());
                         if (prop != null) {
-                            String thumbnailUrl = null;
+                            String thumbnailUrl = prop.getThumbnailUrl();
                             
                             System.out.println("========== 开始处理道具 ==========");
                             System.out.println("道具名称: " + prop.getDisplayName());
                             System.out.println("道具ID: " + prop.getId());
                             System.out.println("库道具ID: " + prop.getLibraryPropId());
                             
-                            // 优先使用库的缩略图
-                            if (prop.getLibraryPropId() != null) {
+                            // 优先使用项目道具缩略图，其次使用库的缩略图
+                            if (thumbnailUrl == null && prop.getLibraryPropId() != null) {
                                 thumbnailUrl = propThumbnailMap.get(prop.getLibraryPropId());
                                 System.out.println("库缩略图URL: " + thumbnailUrl);
                                 log.debug("道具[{}] 库ID:{}, 库缩略图:{}", prop.getDisplayName(), prop.getLibraryPropId(), thumbnailUrl);

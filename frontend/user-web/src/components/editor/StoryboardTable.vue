@@ -252,31 +252,44 @@ const handleParseScript = async () => {
 
 // ============== Excel 导入 ==============
 const importFileInput = ref<HTMLInputElement | null>(null)
+const supplementImageInput = ref<HTMLInputElement | null>(null)
 const isImporting = ref(false)
+const isSupplementingImages = ref(false)
 
 const handleClickImport = () => {
   if (isImporting.value) return
   importFileInput.value?.click()
 }
 
+const handleClickSupplementImages = () => {
+  if (isSupplementingImages.value) return
+  supplementImageInput.value?.click()
+}
+
+const isImageFile = (file: File) => {
+  return file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(file.name)
+}
+
 const handleImportFileChange = async (event: Event) => {
   const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
+  const files = Array.from(input.files || [])
   // 先重置，避免选同一文件不触发 change
   input.value = ''
-  if (!file) return
+  if (!files.length) return
   if (!editorStore.projectId) {
     window.$message?.error('项目尚未加载')
     return
   }
-  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+  const file = files.find(f => f.name.toLowerCase().endsWith('.xlsx'))
+  if (!file) {
     window.$message?.error('仅支持 .xlsx 格式的分镜表格')
     return
   }
+  const assetFiles = files.filter(f => f !== file && isImageFile(f))
 
   isImporting.value = true
   try {
-    const summary = await importApi.importStoryboardExcel(editorStore.projectId, file)
+    const summary = await importApi.importStoryboardExcel(editorStore.projectId, file, assetFiles)
     // 刷新所有受影响的数据
     await Promise.all([
       editorStore.fetchShots(),
@@ -285,7 +298,7 @@ const handleImportFileChange = async (event: Event) => {
       editorStore.fetchProps(),
     ])
     window.$message?.success(
-      `导入成功：新增 ${summary.shotsCreated} 条分镜，涉及角色 ${summary.charactersCreated} / 场景 ${summary.scenesCreated} / 道具 ${summary.propsCreated}`
+      `导入成功：新增 ${summary.shotsCreated} 条分镜，涉及角色 ${summary.charactersCreated} / 场景 ${summary.scenesCreated} / 道具 ${summary.propsCreated}，匹配图片 ${summary.imagesMatched || 0} 张`
     )
   } catch (error: any) {
     console.error('[StoryboardTable] Excel import failed:', error)
@@ -295,6 +308,36 @@ const handleImportFileChange = async (event: Event) => {
     }
   } finally {
     isImporting.value = false
+  }
+}
+
+const handleSupplementImageChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const assetFiles = Array.from(input.files || []).filter(isImageFile)
+  input.value = ''
+  if (!assetFiles.length) return
+  if (!editorStore.projectId) {
+    window.$message?.error('项目尚未加载')
+    return
+  }
+
+  isSupplementingImages.value = true
+  try {
+    const summary = await importApi.importAssetImages(editorStore.projectId, assetFiles)
+    await Promise.all([
+      editorStore.fetchShots(),
+      editorStore.fetchCharacters(),
+      editorStore.fetchScenes(),
+      editorStore.fetchProps(),
+    ])
+    window.$message?.success(`补图完成：匹配图片 ${summary.imagesMatched || 0} 张`)
+  } catch (error: any) {
+    console.error('[StoryboardTable] Asset image import failed:', error)
+    if (!error?.message?.includes('网络') && !window.$message) {
+      alert(error?.message || '补图失败，请检查图片文件名')
+    }
+  } finally {
+    isSupplementingImages.value = false
   }
 }
 
@@ -406,9 +449,20 @@ computed(() => {
         <input
           ref="importFileInput"
           type="file"
-          accept=".xlsx"
+          accept=".xlsx,image/*"
+          multiple
           class="hidden"
           @change="handleImportFileChange"
+        />
+        <input
+          ref="supplementImageInput"
+          type="file"
+          accept="image/*"
+          multiple
+          webkitdirectory
+          directory
+          class="hidden"
+          @change="handleSupplementImageChange"
         />
 
         <!-- Import Storyboard Excel Button -->
@@ -422,6 +476,19 @@ computed(() => {
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5 5 5M12 5v12"></path>
           </svg>
           {{ isImporting ? '导入中…' : '导入分镜表格' }}
+        </button>
+
+        <button
+          class="flex items-center gap-2 px-4 py-2 bg-bg-subtle text-text-secondary font-medium text-sm rounded hover:bg-bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="isSupplementingImages"
+          :title="'选择角色/场景/道具图片文件夹，按 001_名称_gpt-image-2.png 这类文件名自动匹配补图'"
+          @click="handleClickSupplementImages"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5A2.5 2.5 0 015.5 5h3.2l1.6 2H18.5A2.5 2.5 0 0121 9.5v7A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5v-9z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 11v5m-2.5-2.5h5"></path>
+          </svg>
+          {{ isSupplementingImages ? '补图中…' : '补充图片' }}
         </button>
 
         <!-- AI Parse Script Button -->
@@ -496,7 +563,7 @@ computed(() => {
             <th class="px-3 py-3 text-left flex-1 min-w-[200px] text-text-tertiary text-xs font-semibold uppercase">
               剧本
             </th>
-            <th class="px-3 py-3 text-left w-[140px] text-text-tertiary text-xs font-semibold uppercase">
+            <th class="px-3 py-3 text-left w-[200px] text-text-tertiary text-xs font-semibold uppercase">
               角色画像
             </th>
             <th class="px-3 py-3 text-left w-[120px] text-text-tertiary text-xs font-semibold uppercase">

@@ -5,10 +5,13 @@ package com.ym.ai_story_studio_server.dto.prop;
  *
  * @param displayName 项目内显示名(可选)
  * @param overrideDescription 覆盖描述(可选)
+ * @param thumbnailUrl 缩略图URL(可选)
  */
 public record UpdateProjectPropRequest(
         String displayName,
 
-        String overrideDescription
+        String overrideDescription,
+
+        String thumbnailUrl
 ) {
 }

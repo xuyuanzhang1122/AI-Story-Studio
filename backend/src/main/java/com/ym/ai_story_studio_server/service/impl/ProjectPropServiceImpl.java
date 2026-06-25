@@ -16,6 +16,7 @@ import com.ym.ai_story_studio_server.service.ProjectPropService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,11 +44,13 @@ public class ProjectPropServiceImpl implements ProjectPropService {
         List<ProjectProp> projectProps = projectPropMapper.selectList(queryWrapper);
 
         return projectProps.stream().map(pp -> {
-            PropLibrary lib = propLibraryMapper.selectById(pp.getLibraryPropId());
+            PropLibrary lib = pp.getLibraryPropId() != null ? propLibraryMapper.selectById(pp.getLibraryPropId()) : null;
             String name = lib != null ? lib.getName() : null;
             String description = pp.getOverrideDescription() != null ? pp.getOverrideDescription() :
                     (lib != null ? lib.getDescription() : null);
-            String thumbnailUrl = lib != null ? lib.getThumbnailUrl() : null;
+            String thumbnailUrl = StringUtils.hasText(pp.getThumbnailUrl())
+                    ? pp.getThumbnailUrl()
+                    : (lib != null ? lib.getThumbnailUrl() : null);
 
             return new ProjectPropVO(
                     pp.getId(),
@@ -74,21 +77,24 @@ public class ProjectPropServiceImpl implements ProjectPropService {
             throw new BusinessException(ResultCode.ACCESS_DENIED);
         }
 
-        // 验证道具库存在
-        PropLibrary lib = propLibraryMapper.selectById(request.libraryPropId());
-        if (lib == null || lib.getDeletedAt() != null) {
-            throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "道具库不存在");
-        }
-        if (!lib.getUserId().equals(userId)) {
-            throw new BusinessException(ResultCode.ACCESS_DENIED, "无权访问该道具");
-        }
+        PropLibrary lib = null;
+        if (request.libraryPropId() != null) {
+            // 验证道具库存在
+            lib = propLibraryMapper.selectById(request.libraryPropId());
+            if (lib == null || lib.getDeletedAt() != null) {
+                throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "道具库不存在");
+            }
+            if (!lib.getUserId().equals(userId)) {
+                throw new BusinessException(ResultCode.ACCESS_DENIED, "无权访问该道具");
+            }
 
-        // 检查是否已添加
-        LambdaQueryWrapper<ProjectProp> checkWrapper = new LambdaQueryWrapper<>();
-        checkWrapper.eq(ProjectProp::getProjectId, projectId)
-                .eq(ProjectProp::getLibraryPropId, request.libraryPropId());
-        if (projectPropMapper.selectCount(checkWrapper) > 0) {
-            throw new BusinessException(ResultCode.DUPLICATE_RESOURCE, "该道具已添加到项目中");
+            // 检查是否已添加
+            LambdaQueryWrapper<ProjectProp> checkWrapper = new LambdaQueryWrapper<>();
+            checkWrapper.eq(ProjectProp::getProjectId, projectId)
+                    .eq(ProjectProp::getLibraryPropId, request.libraryPropId());
+            if (projectPropMapper.selectCount(checkWrapper) > 0) {
+                throw new BusinessException(ResultCode.DUPLICATE_RESOURCE, "该道具已添加到项目中");
+            }
         }
 
         ProjectProp pp = new ProjectProp();
@@ -96,20 +102,22 @@ public class ProjectPropServiceImpl implements ProjectPropService {
         pp.setLibraryPropId(request.libraryPropId());
         pp.setDisplayName(request.displayName());
         pp.setOverrideDescription(request.overrideDescription());
+        pp.setThumbnailUrl(request.thumbnailUrl());
 
         projectPropMapper.insert(pp);
 
         log.info("道具添加到项目成功, projectPropId: {}", pp.getId());
 
-        String description = pp.getOverrideDescription() != null ? pp.getOverrideDescription() : lib.getDescription();
+        String description = pp.getOverrideDescription() != null ? pp.getOverrideDescription() : (lib != null ? lib.getDescription() : null);
+        String thumbnailUrl = StringUtils.hasText(pp.getThumbnailUrl()) ? pp.getThumbnailUrl() : (lib != null ? lib.getThumbnailUrl() : null);
 
         return new ProjectPropVO(
                 pp.getId(),
                 pp.getLibraryPropId(),
                 pp.getDisplayName(),
-                lib.getName(),
+                lib != null ? lib.getName() : pp.getDisplayName(),
                 description,
-                lib.getThumbnailUrl(),
+                thumbnailUrl,
                 pp.getCreatedAt()
         );
     }
@@ -137,6 +145,9 @@ public class ProjectPropServiceImpl implements ProjectPropService {
         }
         if (request.overrideDescription() != null) {
             pp.setOverrideDescription(request.overrideDescription());
+        }
+        if (request.thumbnailUrl() != null) {
+            pp.setThumbnailUrl(request.thumbnailUrl());
         }
 
         projectPropMapper.updateById(pp);

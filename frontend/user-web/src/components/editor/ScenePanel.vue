@@ -10,6 +10,10 @@ const panelManagerStore = usePanelManagerStore()
 // Search state
 const searchQuery = ref('')
 
+const getSceneName = (scene: any) => {
+  return scene?.displayName || scene?.name || scene?.librarySceneName || '未命名场景'
+}
+
 // 所有场景
 const activeScenes = computed(() => {
   return editorStore.scenes
@@ -24,7 +28,7 @@ const availableScenes = computed(() => {
   }
 
   const query = searchQuery.value.toLowerCase()
-  return scenes.filter((s) => s.displayName.toLowerCase().includes(query))
+  return scenes.filter((s) => getSceneName(s).toLowerCase().includes(query))
 })
 
 // Show add scene library modal
@@ -57,7 +61,7 @@ const handleSceneClick = (sceneId: number) => {
   panelManagerStore.openPanel('asset-edit', {
     assetType: 'scene',
     assetId: scene.id,
-    sceneName: scene.displayName || (scene as any).name,
+    sceneName: getSceneName(scene),
     existingThumbnailUrl: scene.thumbnailUrl,
     existingDescription: (scene as any).finalDescription || (scene as any).description
   })
@@ -73,7 +77,7 @@ const handleSceneClick = (sceneId: number) => {
         <span class="text-text-tertiary font-normal ml-2">({{ activeScenes.length }})</span>
       </h3>
 
-      <div class="grid grid-cols-4 gap-2 mb-6">
+      <div class="grid grid-cols-4 gap-3 mb-6">
         <!-- Active Scene Cards -->
         <div
           v-for="scene in activeScenes"
@@ -85,7 +89,7 @@ const handleSceneClick = (sceneId: number) => {
           <img
             v-if="scene.thumbnailUrl"
             :src="scene.thumbnailUrl"
-            :alt="scene.displayName"
+            :alt="getSceneName(scene)"
             class="w-full aspect-square rounded-lg object-cover mb-1 transition-transform duration-300 group-hover:scale-105"
           >
           <div
@@ -97,12 +101,12 @@ const handleSceneClick = (sceneId: number) => {
 
           <!-- Active Indicator (Neon Cyan Dot) -->
           <div
-            class="absolute top-1 right-1 w-2.5 h-2.5 bg-gray-900 rounded border-2 border-[#1E2025] shadow-[0_0_6px_2px_rgba(0,255,204,0.7)]"
+            class="absolute top-1 right-1 w-3 h-3 rounded-full bg-[#00FFCC] border-2 border-[#1E2025] shadow-[0_0_8px_3px_rgba(0,255,204,0.85)]"
           ></div>
 
           <!-- Scene Name -->
-          <p class="text-center text-xs truncate text-text-secondary">
-            {{ scene.displayName }}
+          <p class="text-center text-xs truncate text-[#FFB000] font-medium mt-0.5" :title="getSceneName(scene)">
+            {{ getSceneName(scene) }}
           </p>
         </div>
 
@@ -133,7 +137,7 @@ const handleSceneClick = (sceneId: number) => {
         </div>
       </div>
 
-      <div class="grid grid-cols-4 gap-2">
+      <div class="grid grid-cols-4 gap-3">
         <!-- Available Scene Cards -->
         <div
           v-for="scene in availableScenes"
@@ -145,7 +149,7 @@ const handleSceneClick = (sceneId: number) => {
           <img
             v-if="scene.thumbnailUrl"
             :src="scene.thumbnailUrl"
-            :alt="scene.displayName"
+            :alt="getSceneName(scene)"
             class="w-full aspect-square rounded-lg object-cover mb-1 transition-transform duration-300 group-hover:scale-105"
           >
           <div
@@ -156,8 +160,8 @@ const handleSceneClick = (sceneId: number) => {
           </div>
 
           <!-- Scene Name -->
-          <p class="text-center text-xs truncate text-text-secondary">
-            {{ scene.displayName }}
+          <p class="text-center text-xs truncate text-[#FFB000] font-medium mt-0.5" :title="getSceneName(scene)">
+            {{ getSceneName(scene) }}
           </p>
         </div>
 

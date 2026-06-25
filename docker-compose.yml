@@ -95,7 +95,7 @@ services:
       dockerfile: ./Dockerfile.frontend
     container_name: ai-studio-frontend
     ports:
-      - "80:80"
+      - "8081:80"
     depends_on:
       - backend
     networks:

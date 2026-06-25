@@ -9,6 +9,10 @@ const editorStore = useEditorStore()
 // Search state
 const searchQuery = ref('')
 
+const getCharacterName = (character: any) => {
+  return character?.displayName || character?.name || character?.libraryCharacterName || '未命名角色'
+}
+
 // Filter active characters (isActive === true)
 const activeCharacters = computed(() => {
   return editorStore.characters.filter((c) => c.isActive)
@@ -23,7 +27,7 @@ const availableCharacters = computed(() => {
   }
 
   const query = searchQuery.value.toLowerCase()
-  return chars.filter((c) => c.name.toLowerCase().includes(query))
+  return chars.filter((c) => getCharacterName(c).toLowerCase().includes(query))
 })
 
 // Show add character library modal
@@ -57,7 +61,7 @@ const handleCharacterClick = (characterId: number) => {
   panelManagerStore.openPanel('asset-edit', {
     assetType: 'character',
     assetId: character.id,
-    characterName: (character as any).displayName || character.name,
+    characterName: getCharacterName(character),
     existingThumbnailUrl: character.thumbnailUrl,
     existingDescription: (character as any).finalDescription || (character as any).description
   })
@@ -73,7 +77,7 @@ const handleCharacterClick = (characterId: number) => {
         <span class="text-text-tertiary font-normal ml-2">({{ activeCharacters.length }})</span>
       </h3>
 
-      <div class="grid grid-cols-4 gap-2 mb-6">
+      <div class="grid grid-cols-4 gap-3 mb-6">
         <!-- Active Character Cards -->
         <div
           v-for="char in activeCharacters"
@@ -85,7 +89,7 @@ const handleCharacterClick = (characterId: number) => {
           <img
             v-if="char.thumbnailUrl"
             :src="char.thumbnailUrl"
-            :alt="char.name"
+            :alt="getCharacterName(char)"
             class="w-full aspect-square rounded-lg object-cover mb-1 transition-transform duration-300 group-hover:scale-105"
           >
           <div
@@ -100,12 +104,12 @@ const handleCharacterClick = (characterId: number) => {
 
           <!-- Active Indicator (Neon Cyan Dot) -->
           <div
-            class="absolute top-1 right-1 w-2.5 h-2.5 bg-gray-900 rounded border-2 border-[#1E2025] shadow-[0_0_6px_2px_rgba(0,255,204,0.7)]"
+            class="absolute top-1 right-1 w-3 h-3 rounded-full bg-[#00FFCC] border-2 border-[#1E2025] shadow-[0_0_8px_3px_rgba(0,255,204,0.85)]"
           ></div>
 
           <!-- Character Name -->
-          <p class="text-center text-xs truncate text-text-secondary">
-            {{ char.name }}
+          <p class="text-center text-xs truncate text-[#FFB000] font-medium mt-0.5" :title="getCharacterName(char)">
+            {{ getCharacterName(char) }}
           </p>
         </div>
 
@@ -136,7 +140,7 @@ const handleCharacterClick = (characterId: number) => {
         </div>
       </div>
 
-      <div class="grid grid-cols-4 gap-2">
+      <div class="grid grid-cols-4 gap-3">
         <!-- Available Character Cards -->
         <div
           v-for="char in availableCharacters"
@@ -148,7 +152,7 @@ const handleCharacterClick = (characterId: number) => {
           <img
             v-if="char.thumbnailUrl"
             :src="char.thumbnailUrl"
-            :alt="char.name"
+            :alt="getCharacterName(char)"
             class="w-full aspect-square rounded-lg object-cover mb-1 transition-transform duration-300 group-hover:scale-105"
           >
           <div
@@ -162,8 +166,8 @@ const handleCharacterClick = (characterId: number) => {
           </div>
 
           <!-- Character Name -->
-          <p class="text-center text-xs truncate text-text-secondary">
-            {{ char.name }}
+          <p class="text-center text-xs truncate text-[#FFB000] font-medium mt-0.5" :title="getCharacterName(char)">
+            {{ getCharacterName(char) }}
           </p>
         </div>
 

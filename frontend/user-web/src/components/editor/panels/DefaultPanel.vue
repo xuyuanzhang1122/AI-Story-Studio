@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { usePanelManagerStore } from '@/stores/panelManager'
 import CharacterLibraryModal from '../CharacterLibraryModal.vue'
 import SceneLibraryModal from '../SceneLibraryModal.vue'
 import PropLibraryModal from '../PropLibraryModal.vue'
+import AssetHoverPreview from '../AssetHoverPreview.vue'
 import { characterApi } from '@/api/character'
 import { sceneApi } from '@/api/scene'
 import { propApi } from '@/api/prop'
@@ -45,6 +46,107 @@ const sceneCategories = ref<Array<{ id: number; name: string; count: number }>>(
 const showCharacterLibraryModal = ref(false)
 const showSceneLibraryModal = ref(false)
 const showPropLibraryModal = ref(false)
+const assetPanelRef = ref<HTMLElement | null>(null)
+
+const hoverPreview = ref({
+  visible: false,
+  name: '',
+  imageUrl: null as string | null,
+  description: null as string | null,
+  x: 0,
+  y: 0,
+})
+const pendingHoverKey = ref<string | null>(null)
+let hoverPreviewTimer: ReturnType<typeof setTimeout> | null = null
+const detailPreviewWidth = 760
+const detailPreviewGap = 12
+const detailPreviewDelay = 680
+
+const getCharacterName = (character: any) => {
+  return character?.displayName || character?.name || character?.libraryCharacterName || '未命名角色'
+}
+
+const getSceneName = (scene: any) => {
+  return scene?.displayName || scene?.name || scene?.librarySceneName || '未命名场景'
+}
+
+const getPropName = (prop: any) => {
+  return prop?.displayName || prop?.name || '未命名道具'
+}
+
+const getCharacterDescription = (character: any) => {
+  return character?.finalDescription || character?.description || character?.overrideDescription || ''
+}
+
+const getSceneDescription = (scene: any) => {
+  return scene?.finalDescription || scene?.description || scene?.overrideDescription || ''
+}
+
+const getPropDescription = (prop: any) => {
+  return prop?.description || prop?.finalDescription || prop?.overrideDescription || ''
+}
+
+const clearHoverPreviewTimer = () => {
+  if (hoverPreviewTimer) {
+    clearTimeout(hoverPreviewTimer)
+    hoverPreviewTimer = null
+  }
+}
+
+const getDetailPreviewPosition = () => {
+  const panelRect = assetPanelRef.value?.getBoundingClientRect()
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1280
+
+  if (!panelRect) {
+    return { x: Math.max(12, viewportWidth - detailPreviewWidth - 380), y: 12 }
+  }
+
+  return {
+    x: Math.max(12, panelRect.left - detailPreviewWidth - detailPreviewGap),
+    y: Math.max(12, panelRect.top + detailPreviewGap),
+  }
+}
+
+const showHoverPreview = (
+  payload: { key: string; name: string; imageUrl?: string | null; description?: string | null }
+) => {
+  clearHoverPreviewTimer()
+  pendingHoverKey.value = payload.key
+  hoverPreview.value.visible = false
+
+  hoverPreviewTimer = setTimeout(() => {
+    if (pendingHoverKey.value !== payload.key) return
+    const position = getDetailPreviewPosition()
+    hoverPreview.value = {
+      visible: true,
+      name: payload.name,
+      imageUrl: payload.imageUrl || null,
+      description: payload.description || null,
+      x: position.x,
+      y: position.y,
+    }
+    pendingHoverKey.value = null
+    hoverPreviewTimer = null
+  }, detailPreviewDelay)
+}
+
+const moveHoverPreview = () => {
+  if (!hoverPreview.value.visible) return
+  const position = getDetailPreviewPosition()
+  hoverPreview.value = {
+    ...hoverPreview.value,
+    x: position.x,
+    y: position.y,
+  }
+}
+
+const hideHoverPreview = () => {
+  clearHoverPreviewTimer()
+  pendingHoverKey.value = null
+  hoverPreview.value.visible = false
+}
+
+onUnmounted(clearHoverPreviewTimer)
 
 // 加载分类列表
 const loadCharacterCategories = async () => {
@@ -71,13 +173,13 @@ const filteredCharacters = computed(() => {
 
   // 按分类过滤
   if (selectedCharacterCategory.value !== null) {
-    chars = chars.filter(c => c.categoryId === selectedCharacterCategory.value)
+    chars = chars.filter(c => (c as any).categoryId === selectedCharacterCategory.value)
   }
 
   // 按搜索关键词过滤
   if (characterSearchQuery.value.trim()) {
     const query = characterSearchQuery.value.toLowerCase()
-    chars = chars.filter(c => c.name.toLowerCase().includes(query))
+    chars = chars.filter(c => getCharacterName(c).toLowerCase().includes(query))
   }
 
   return chars
@@ -90,7 +192,7 @@ const filteredScenes = computed(() => {
   // 按搜索关键词过滤
   if (sceneSearchQuery.value.trim()) {
     const query = sceneSearchQuery.value.toLowerCase()
-    scenes = scenes.filter(s => s.displayName.toLowerCase().includes(query))
+    scenes = scenes.filter(s => getSceneName(s).toLowerCase().includes(query))
   }
 
   return scenes
@@ -150,7 +252,7 @@ const handleCharacterClick = (characterId: number) => {
     panelManagerStore.openPanel('asset-edit', {
       assetType: 'character',
       assetId: characterId,
-      characterName: (character as any)?.displayName || character?.name,
+      characterName: getCharacterName(character),
       prefillDescription: scriptText,  // 让AI解析
       existingDescription: (character as any)?.finalDescription || (character as any)?.description
     })
@@ -159,7 +261,7 @@ const handleCharacterClick = (characterId: number) => {
     panelManagerStore.openPanel('asset-edit', {
       assetType: 'character',
       assetId: characterId,
-      characterName: (character as any)?.displayName || character?.name,
+      characterName: getCharacterName(character),
       existingThumbnailUrl: character?.thumbnailUrl,
       existingDescription: (character as any)?.finalDescription || (character as any)?.description
     })
@@ -172,7 +274,7 @@ const handleSceneClick = (sceneId: number) => {
   panelManagerStore.openPanel('asset-edit', {
     assetType: 'scene',
     assetId: sceneId,
-    sceneName: (scene as any)?.displayName,
+    sceneName: getSceneName(scene),
     existingThumbnailUrl: scene?.thumbnailUrl,
     existingDescription: (scene as any)?.finalDescription || (scene as any)?.description
   })
@@ -181,6 +283,11 @@ const handleSceneClick = (sceneId: number) => {
 // 过滤后的道具列表
 const filteredProps = computed(() => {
   let props = editorStore.props
+
+  if (propSearchQuery.value.trim()) {
+    const query = propSearchQuery.value.toLowerCase()
+    props = props.filter(p => getPropName(p).toLowerCase().includes(query))
+  }
 
   return props
 })
@@ -204,15 +311,20 @@ const handlePropClick = (propId: number) => {
   panelManagerStore.openPanel('asset-edit', {
     assetType: 'prop',
     assetId: propId,
-    propName: (prop as any)?.displayName || prop?.name,
+    propName: getPropName(prop),
     existingThumbnailUrl: prop?.thumbnailUrl,
     existingDescription: (prop as any)?.finalDescription || (prop as any)?.description
   })
 }
+
+onMounted(() => {
+  loadCharacterCategories()
+  loadSceneCategories()
+})
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-bg-elevated">
+  <div ref="assetPanelRef" class="flex flex-col h-full bg-bg-elevated">
     <!-- 标签页切换 -->
     <div class="flex items-center gap-2 border-b border-border-default px-4 py-3">
       <button
@@ -295,34 +407,42 @@ const handlePropClick = (propId: number) => {
 
       <!-- 角色列表 -->
       <div class="flex-1 overflow-y-auto px-4 py-4">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="grid grid-cols-4 gap-3">
           <div
             v-for="char in filteredCharacters"
             :key="char.id"
-            class="text-center group cursor-pointer relative rounded-lg"
+            class="group cursor-pointer relative"
+            @mouseenter="showHoverPreview({ key: `character-${char.id}`, name: getCharacterName(char), imageUrl: char.thumbnailUrl, description: getCharacterDescription(char) })"
+            @mousemove="moveHoverPreview"
+            @mouseleave="hideHoverPreview"
             @click="handleCharacterClick(char.id)"
           >
-            <!-- Character Info (no thumbnail in list view) -->
-            <div class="flex items-start gap-2">
-              <!-- Avatar icon -->
-              <div class="w-8 h-8 rounded bg-bg-hover flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="relative w-full aspect-square rounded-lg overflow-hidden bg-bg-hover">
+              <img
+                v-if="char.thumbnailUrl"
+                :src="char.thumbnailUrl"
+                :alt="getCharacterName(char)"
+                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              >
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <svg class="w-7 h-7 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                   <circle cx="12" cy="7" r="4"></circle>
                 </svg>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-center text-xs truncate text-text-secondary">
-                  {{ char.name }}
-                </p>
-              </div>
+              <div
+                v-if="pendingHoverKey === `character-${char.id}`"
+                class="asset-thumb-wiper"
+              ></div>
+              <!-- 激活状态指示器（主人公亮点） -->
+              <div
+                v-if="char.isActive"
+                class="absolute top-1 right-1 w-3 h-3 rounded-full bg-[#00FFCC] border-2 border-[#1E2025] shadow-[0_0_8px_3px_rgba(0,255,204,0.85)]"
+              ></div>
             </div>
-
-            <!-- 激活状态指示器 -->
-            <div
-              v-if="char.isActive"
-              class="absolute top-1 right-1 w-2.5 h-2.5 bg-gray-900 rounded border-2 border-[#1E2025] shadow-[0_0_6px_2px_rgba(0,255,204,0.7)]"
-            ></div>
+            <p class="text-center text-xs truncate text-[#FFB000] font-medium mt-1" :title="getCharacterName(char)">
+              {{ getCharacterName(char) }}
+            </p>
           </div>
 
           <!-- 空状态 -->
@@ -381,25 +501,34 @@ const handlePropClick = (propId: number) => {
 
       <!-- 场景列表 -->
       <div class="flex-1 overflow-y-auto px-4 py-4">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="grid grid-cols-4 gap-3">
           <div
             v-for="scene in filteredScenes"
             :key="scene.id"
-            class="text-center group cursor-pointer relative rounded-lg"
+            class="group cursor-pointer relative"
+            @mouseenter="showHoverPreview({ key: `scene-${scene.id}`, name: getSceneName(scene), imageUrl: scene.thumbnailUrl, description: getSceneDescription(scene) })"
+            @mousemove="moveHoverPreview"
+            @mouseleave="hideHoverPreview"
             @click="handleSceneClick(scene.id)"
           >
-            <!-- Scene Info (no thumbnail in list view) -->
-            <div class="flex items-start gap-2">
-              <!-- Scene icon -->
-              <div class="w-8 h-8 rounded bg-bg-hover flex items-center justify-center flex-shrink-0">
-                <span class="text-lg">🎬</span>
+            <div class="relative w-full aspect-square rounded-lg overflow-hidden bg-bg-hover">
+              <img
+                v-if="scene.thumbnailUrl"
+                :src="scene.thumbnailUrl"
+                :alt="getSceneName(scene)"
+                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              >
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <span class="text-2xl">🎬</span>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-center text-xs truncate text-text-secondary">
-                  {{ scene.displayName }}
-                </p>
-              </div>
+              <div
+                v-if="pendingHoverKey === `scene-${scene.id}`"
+                class="asset-thumb-wiper"
+              ></div>
             </div>
+            <p class="text-center text-xs truncate text-[#FFB000] font-medium mt-1" :title="getSceneName(scene)">
+              {{ getSceneName(scene) }}
+            </p>
           </div>
 
           <!-- 空状态 -->
@@ -448,27 +577,36 @@ const handlePropClick = (propId: number) => {
 
       <!-- 道具列表 -->
       <div class="flex-1 overflow-y-auto px-4 py-4">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="grid grid-cols-4 gap-3">
           <div
             v-for="prop in filteredProps"
             :key="prop.id"
-            class="text-center group cursor-pointer relative rounded-lg"
+            class="group cursor-pointer relative"
+            @mouseenter="showHoverPreview({ key: `prop-${prop.id}`, name: getPropName(prop), imageUrl: prop.thumbnailUrl, description: getPropDescription(prop) })"
+            @mousemove="moveHoverPreview"
+            @mouseleave="hideHoverPreview"
             @click="handlePropClick(prop.id)"
           >
-            <!-- Prop Info (no thumbnail in list view) -->
-            <div class="flex items-start gap-2">
-              <!-- Prop icon -->
-              <div class="w-8 h-8 rounded bg-bg-hover flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="relative w-full aspect-square rounded-lg overflow-hidden bg-bg-hover">
+              <img
+                v-if="prop.thumbnailUrl"
+                :src="prop.thumbnailUrl"
+                :alt="getPropName(prop)"
+                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              >
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <svg class="w-7 h-7 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
                 </svg>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-center text-xs truncate text-text-secondary">
-                  {{ prop.name || prop.displayName }}
-                </p>
-              </div>
+              <div
+                v-if="pendingHoverKey === `prop-${prop.id}`"
+                class="asset-thumb-wiper"
+              ></div>
             </div>
+            <p class="text-center text-xs truncate text-[#FFB000] font-medium mt-1" :title="getPropName(prop)">
+              {{ getPropName(prop) }}
+            </p>
           </div>
 
           <!-- 空状态 -->
@@ -505,5 +643,39 @@ const handlePropClick = (propId: number) => {
       @close="handleClosePropLibraryModal"
       @added="handleClosePropLibraryModal"
     />
+
+    <AssetHoverPreview
+      :visible="hoverPreview.visible"
+      :name="hoverPreview.name"
+      :image-url="hoverPreview.imageUrl"
+      :description="hoverPreview.description"
+      :x="hoverPreview.x"
+      :y="hoverPreview.y"
+      variant="detail"
+      placement="fixed"
+    />
   </div>
 </template>
+
+<style scoped>
+.asset-thumb-wiper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0.62) 50%, rgba(255, 255, 255, 0.12) 58%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.12));
+  background-size: 220% 100%, 100% 100%;
+  animation: asset-thumb-wiper-sweep 680ms ease-in-out forwards;
+}
+
+@keyframes asset-thumb-wiper-sweep {
+  from {
+    background-position: 120% 0, 0 0;
+  }
+
+  to {
+    background-position: -120% 0, 0 0;
+  }
+}
+</style>

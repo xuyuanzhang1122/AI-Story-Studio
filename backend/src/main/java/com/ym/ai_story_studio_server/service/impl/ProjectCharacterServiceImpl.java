@@ -230,6 +230,9 @@ public class ProjectCharacterServiceImpl implements ProjectCharacterService {
         if (request.overrideDescription() != null) {
             projectCharacter.setOverrideDescription(request.overrideDescription());
         }
+        if (request.thumbnailUrl() != null) {
+            projectCharacter.setThumbnailUrl(request.thumbnailUrl());
+        }
         // 支持更新角色库关联(用于重新关联已删除的角色)
         if (request.libraryCharacterId() != null) {
             // 验证新角色库角色存在且未删除

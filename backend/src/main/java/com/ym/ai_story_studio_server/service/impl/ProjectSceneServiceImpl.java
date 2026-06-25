@@ -219,6 +219,9 @@ public class ProjectSceneServiceImpl implements ProjectSceneService {
         if (request.overrideDescription() != null) {
             projectScene.setOverrideDescription(request.overrideDescription());
         }
+        if (request.thumbnailUrl() != null) {
+            projectScene.setThumbnailUrl(request.thumbnailUrl());
+        }
 
         // 保存到数据库
         projectSceneMapper.updateById(projectScene);

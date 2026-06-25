@@ -13,9 +13,9 @@ spring:
   servlet:
     multipart:
       # 单个文件最大大小
-      max-file-size: 50MB
+      max-file-size: 500MB
       # 请求最大大小
-      max-request-size: 50MB
+      max-request-size: 500MB
   flyway:
     enabled: true
     baseline-on-migrate: true

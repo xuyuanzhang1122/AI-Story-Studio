@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 /**
  * 剧本/分镜导入控制器
  *
@@ -35,11 +37,27 @@ public class ImportController {
     @PostMapping(value = "/excel", consumes = "multipart/form-data")
     public Result<ImportSummary> importExcel(
             @PathVariable("projectId") Long projectId,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "assetFiles", required = false) List<MultipartFile> assetFiles) {
         Long userId = UserContext.getUserId();
-        log.info("导入分镜表格: userId={}, projectId={}, fileName={}, size={}",
-                userId, projectId, file.getOriginalFilename(), file.getSize());
-        ImportSummary summary = importService.importStoryboardExcel(userId, projectId, file);
+        log.info("导入分镜表格: userId={}, projectId={}, fileName={}, size={}, assetFiles={}",
+                userId, projectId, file.getOriginalFilename(), file.getSize(),
+                assetFiles == null ? 0 : assetFiles.size());
+        ImportSummary summary = importService.importStoryboardExcel(userId, projectId, file, assetFiles);
         return Result.success("导入成功", summary);
+    }
+
+    /**
+     * 为已导入项目补充上传角色/场景/道具图片。
+     */
+    @PostMapping(value = "/asset-images", consumes = "multipart/form-data")
+    public Result<ImportSummary> importAssetImages(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam("assetFiles") List<MultipartFile> assetFiles) {
+        Long userId = UserContext.getUserId();
+        log.info("补充导入资源图片: userId={}, projectId={}, assetFiles={}",
+                userId, projectId, assetFiles == null ? 0 : assetFiles.size());
+        ImportSummary summary = importService.importAssetImages(userId, projectId, assetFiles);
+        return Result.success("图片导入成功", summary);
     }
 }

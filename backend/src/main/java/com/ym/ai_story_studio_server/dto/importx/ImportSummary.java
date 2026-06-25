@@ -8,6 +8,8 @@ public record ImportSummary(
         int charactersCreated,
         int scenesCreated,
         int propsCreated,
-        int bindingsCreated
+        int bindingsCreated,
+        int imagesMatched,
+        int imagesUploaded
 ) {
 }
