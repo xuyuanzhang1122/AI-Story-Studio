@@ -56,51 +56,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void sendVerificationCode(String phone) {
-        // 1. 检查防刷锁
-        if (redisUtil.hasLock(phone)) {
-            log.warn("发送验证码失败：请求过于频繁, phone={}", maskPhone(phone));
-            throw new BusinessException(ResultCode.REQUEST_TOO_FREQUENT, "请求过于频繁，请60秒后再试");
-        }
-
-        // 2. 生成6位随机验证码
-        int codeInt = ThreadLocalRandom.current().nextInt(100000, 1000000);
-        String code = String.valueOf(codeInt);
-        log.info("生成验证码: phone={}, code={}", maskPhone(phone), code);
-
-        // 3. 调用SMS服务发送短信
-        boolean success = smsService.sendVerificationCode(phone, code);
-        if (!success) {
-            log.error("短信发送失败: phone={}", maskPhone(phone));
-            throw new BusinessException(ResultCode.SMS_SEND_FAILED, "短信发送失败，请稍后再试");
-        }
-
-        // 4. 存储验证码到Redis（5分钟有效期）
-        redisUtil.saveCode(phone, code, CODE_EXPIRE_SECONDS);
-
-        // 5. 设置防刷锁（60秒）
-        redisUtil.tryLock(phone, LOCK_SECONDS);
-
-        log.info("验证码发送成功: phone={}", maskPhone(phone));
+        // 非商业自部署版本：跳过实际 SMS 调用，前端可输入任意 6 位数字直接登录
+        log.info("[DEV] 跳过验证码发送: phone={}", maskPhone(phone));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PhoneLoginVO phoneLogin(String phone, String code, String inviteCode) {
-        // 1. 验证验证码
-        String cachedCode = redisUtil.getCode(phone);
-        if (cachedCode == null) {
-            log.warn("登录失败：验证码不存在或已过期, phone={}", maskPhone(phone));
-            throw new BusinessException(ResultCode.SMS_CODE_INVALID, "验证码错误或已过期");
-        }
-
-        if (!cachedCode.equals(code)) {
-            log.warn("登录失败：验证码错误, phone={}, input={}, cached={}",
-                    maskPhone(phone), code, cachedCode);
-            throw new BusinessException(ResultCode.SMS_CODE_INVALID, "验证码错误");
-        }
-
-        // 2. 删除验证码（防止重复使用）
-        redisUtil.deleteCode(phone);
+        // 非商业自部署版本：跳过验证码校验，任意 code 均放行
+        log.info("[DEV] 跳过验证码校验直接登录: phone={}", maskPhone(phone));
 
         // 3. 查询用户
         UserAuth userAuth = userAuthMapper.selectOne(
