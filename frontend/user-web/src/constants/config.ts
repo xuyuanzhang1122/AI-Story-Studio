@@ -1,6 +1,6 @@
 export const BRANDING = {
-  appName: '圆梦动画',
-  appNameEn: 'YuanMeng Animation',
+  appName: '红鹦鹉漫剧',
+  appNameEn: 'Red Parrot Story Studio',
   currency: '积分',
   // Use SparklesIcon component instead of emoji
 }

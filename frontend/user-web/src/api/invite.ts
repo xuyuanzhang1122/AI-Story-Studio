@@ -50,7 +50,7 @@ export const inviteApi = {
   generateInviteText(inviteCode: string): string {
     const baseUrl = import.meta.env.VITE_APP_BASE_URL || window.location.origin
     const inviteLink = `${baseUrl}/invite/${inviteCode}`
-    return `您的好友邀请你加入圆梦动画免费创作AI漫剧:${inviteLink}`
+    return `您的好友邀请你加入红鹦鹉漫剧免费创作AI漫剧:${inviteLink}`
   },
 
   /**

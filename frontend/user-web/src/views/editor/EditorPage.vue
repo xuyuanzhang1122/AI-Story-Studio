@@ -286,7 +286,7 @@ const handleExportScripts = () => {
           <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
             <img src="@/assets/images/9724166f3c32d4dac68c7615c5e5de2f.jpg" alt="Logo" class="w-full h-full object-cover" />
           </div>
-          <span class="text-lg font-bold text-text-primary leading-none">圆梦动画</span>
+          <span class="text-lg font-bold text-text-primary leading-none">红鹦鹉漫剧</span>
         </div>
 
         <!-- Divider -->

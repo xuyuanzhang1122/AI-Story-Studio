@@ -175,8 +175,8 @@ const handleSaveProfile = async () => {
         </div>
         <!-- 标题 -->
         <div>
-          <h1 class="text-base font-semibold text-text-primary">圆梦动画</h1>
-          <p class="text-xs text-text-tertiary mt-0.5">AI Creative Studio</p>
+          <h1 class="text-base font-semibold text-text-primary">红鹦鹉漫剧</h1>
+          <p class="text-xs text-text-tertiary mt-0.5">AI Story Studio</p>
         </div>
       </div>
     </div>

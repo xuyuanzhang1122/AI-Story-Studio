@@ -122,11 +122,11 @@ const handleKeydown = (e: KeyboardEvent, action: 'sendCode' | 'login') => {
       <div class="text-center mb-8">
         <div class="inline-block mb-4">
           <div class="w-16 h-16 rounded-lg bg-[#8B5CF6] flex items-center justify-center">
-            <span class="text-2xl font-bold text-white">圆梦</span>
+            <span class="text-lg font-bold leading-none text-white">红鹦鹉</span>
           </div>
         </div>
-        <h1 class="text-3xl font-bold text-text-primary mb-2">圆梦动画</h1>
-        <p class="text-text-tertiary text-sm">AI 驱动的动画创作平台</p>
+        <h1 class="text-3xl font-bold text-text-primary mb-2">红鹦鹉漫剧</h1>
+        <p class="text-text-tertiary text-sm">AI 驱动的漫剧创作平台</p>
       </div>
 
       <!-- Login form -->
@@ -211,7 +211,7 @@ const handleKeydown = (e: KeyboardEvent, action: 'sendCode' | 'login') => {
 
       <!-- Footer text -->
       <p class="text-text-tertiary text-xs text-center mt-6">
-        © 2024 圆梦动画 · AI Story Studio
+        © 2024 红鹦鹉漫剧 · AI Story Studio
       </p>
     </div>
   </div>
