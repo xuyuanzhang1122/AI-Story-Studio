@@ -1,5 +1,4 @@
 import { Button, Dropdown, ThemeProvider } from '@lobehub/ui'
-import { ChevronDown } from 'lucide-react'
 
 export interface LobeDropdownOption {
   disabled?: boolean
@@ -43,8 +42,9 @@ export default function LobeDropdownSelectIsland({
           placement="topLeft"
           trigger={['click']}
         >
-          <Button className="lobe-toolbox-dropdown-button" icon={ChevronDown} iconPlacement="end">
-            {label}
+          <Button className="lobe-toolbox-dropdown-button">
+            <span className="lobe-toolbox-dropdown-label">{label}</span>
+            <span aria-hidden className="lobe-toolbox-dropdown-caret">⌄</span>
           </Button>
         </Dropdown>
       </div>

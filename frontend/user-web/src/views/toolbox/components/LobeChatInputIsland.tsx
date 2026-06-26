@@ -31,6 +31,7 @@ export default function LobeChatInputIsland({ value, loading, canSend, onInput, 
   // 若直接驱动 textarea 会在组词中途回灌覆盖、打断输入法，所以只在外部变化
   // （如发送后清空）时同步进本地 state。
   const [local, setLocal] = useState(value)
+  const [focused, setFocused] = useState(false)
   const lastEmitted = useRef(value)
 
   useEffect(() => {
@@ -51,9 +52,14 @@ export default function LobeChatInputIsland({ value, loading, canSend, onInput, 
   return (
     <ThemeProvider themeMode="dark">
       <MotionProvider motion={StaticMotion as any}>
-        <div className="lobe-toolbox-input-shell">
-          {isEmpty && (
+        <div
+          className="lobe-toolbox-input-shell"
+          onBlurCapture={() => setFocused(false)}
+          onFocusCapture={() => setFocused(true)}
+        >
+          {isEmpty && !focused && (
             <TypewriterEffect
+              aria-hidden
               className="lobe-toolbox-typewriter"
               color="#f8fafc"
               cursorStyle="pipe"

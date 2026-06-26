@@ -246,9 +246,9 @@ const handleSend = async () => {
 .toolbox-input-panel :deep(.lobe-toolbox-typewriter span) {
   color: inherit !important;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: 0;
-  line-height: 1.5;
+  line-height: 24px;
 }
 
 .toolbox-input-panel :deep(.lobe-toolbox-typewriter > span:first-child) {
@@ -274,9 +274,11 @@ const handleSend = async () => {
 
 .toolbox-input-panel :deep(.lobe-toolbox-chat-input textarea) {
   background: transparent !important;
+  caret-color: #f8fafc;
   color: rgba(255, 255, 255, 0.92) !important;
-  font-size: 15px !important;
-  line-height: 1.7 !important;
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  line-height: 24px !important;
   min-height: 84px !important;
   padding: 20px 20px 8px !important;
   position: relative;
@@ -337,15 +339,29 @@ const handleSend = async () => {
 }
 
 .toolbox-input-panel :deep(.lobe-toolbox-dropdown-button) {
+  align-items: center;
   background: #24262d;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.9);
+  display: inline-flex;
   font-size: 12px;
   font-weight: 700;
+  gap: 7px;
   height: 30px;
+  justify-content: space-between;
   min-width: 78px;
   padding: 0 10px 0 12px;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-dropdown-label) {
+  min-width: 0;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-dropdown-caret) {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1;
 }
 
 .toolbox-input-panel :deep(.is-model .lobe-toolbox-dropdown-button) {
