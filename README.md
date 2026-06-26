@@ -1,10 +1,11 @@
 <div align="center">
 
-# 🎬 AI Story Studio
+# 🦜 红鹦鹉漫剧 · Super AI Story Studio
 
-**面向个人创作者的 AI 短剧 / 动画分镜自动化工作台**
+**用 AI（爱）叙事，传递爱与快乐**
 
-参考 [MochiAni](https://mochiani.com) 的工作流，把"剧本 → 角色 / 场景 / 道具 → 分镜 → 图像 / 视频"全流程搬进浏览器，
+面向个人创作者的 AI 漫剧 / 短剧分镜自动化工作台。<br/>
+把"剧本 → 角色 / 场景 / 道具 → 分镜 → 图像 / 视频"全流程搬进浏览器，<br/>
 支持从 Excel 一键导入剧本，按行解析镜头并自动关联资源。
 
 [![Java](https://img.shields.io/badge/Java-17-007396?logo=openjdk&logoColor=white)](https://adoptium.net/)
@@ -12,6 +13,7 @@
 [![Vue](https://img.shields.io/badge/Vue-3.4-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.4-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Author](https://img.shields.io/badge/by-Xumy-f43f5e?logo=github)](https://github.com/xuyuanzhang1122)
 
 </div>
 
@@ -61,8 +63,8 @@
 ### 方式一：Docker 一键启动（推荐）
 
 ```bash
-git clone https://github.com/xuyuanzhang1122/-AI.git
-cd -AI
+git clone https://github.com/xuyuanzhang1122/Super-AI-Story-Studio.git
+cd Super-AI-Story-Studio
 docker-compose up -d
 ```
 
@@ -213,7 +215,16 @@ pnpm dev
 
 ---
 
+## 👤 关于作者
+
+由 **Xumy** 独立开发维护。
+
+- GitHub：[@xuyuanzhang1122](https://github.com/xuyuanzhang1122?tab=repositories)
+- 项目地址：[Super-AI-Story-Studio](https://github.com/xuyuanzhang1122/Super-AI-Story-Studio)
+
+---
+
 ## 🪪 License
 
-本仓库 fork 自 [womendeshi/-AI](https://github.com/womendeshi/-AI)，仅用于个人学习 / 自部署，不用于商业。
+MIT · 仅用于个人学习 / 自部署，不用于商业。
 
