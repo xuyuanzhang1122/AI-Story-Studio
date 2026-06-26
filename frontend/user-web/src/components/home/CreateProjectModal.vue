@@ -54,16 +54,16 @@ const handleClose = () => {
   >
     <div
       v-if="show"
-      class="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none"
+      class="create-project-overlay fixed inset-0 flex items-center justify-center z-50 p-4"
       @click.self="handleClose"
     >
       <!-- Modal Container -->
-      <div class="bg-bg-elevated w-[500px] max-h-[90vh] rounded-lg flex flex-col shadow-2xl border border-border-default pointer-events-auto">
+      <div class="create-project-modal w-[500px] max-h-[90vh] flex flex-col pointer-events-auto">
         <!-- Header -->
-        <div class="relative flex items-center justify-center py-4 border-b border-border-subtle">
-          <h2 class="text-[16px] font-medium text-text-primary">创建作品</h2>
+        <div class="create-project-header relative flex items-center justify-center">
+          <h2 class="create-project-title">创建作品</h2>
           <button
-            class="absolute right-5 top-4 text-text-tertiary hover:text-text-primary transition-colors"
+            class="create-project-close absolute right-5 top-4 transition-colors"
             @click="handleClose"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -74,46 +74,46 @@ const handleClose = () => {
         </div>
 
         <!-- Body -->
-        <div class="flex flex-col gap-6 p-8">
+        <div class="create-project-body flex flex-col gap-5">
           <!-- Project Name -->
           <div>
-            <div class="text-[14px] text-text-tertiary mb-2">项目名称</div>
+            <div class="create-project-label">项目名称</div>
             <input
               v-model="projectName"
               type="text"
               placeholder="请输入项目名称"
-              class="w-full bg-bg-subtle border border-border-default rounded-lg px-3 py-2.5 text-text-primary text-[14px] outline-none placeholder-text-tertiary focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6]"
+              class="create-project-field"
             />
           </div>
 
           <!-- Story Script -->
           <div class="flex flex-col">
-            <div class="text-[14px] text-text-tertiary mb-2">故事文案（选填）</div>
-            <div class="bg-bg-subtle rounded-lg p-3 flex flex-col">
+            <div class="create-project-label">故事文案（选填）</div>
+            <div class="create-project-textarea-shell flex flex-col">
               <textarea
                 v-model="storyText"
                 placeholder="输入你的故事文案..."
-                class="h-32 bg-transparent border-none text-text-primary text-[14px] leading-[1.5] resize-none outline-none placeholder-text-tertiary"
+                class="create-project-textarea"
                 :maxlength="maxChars"
               ></textarea>
-              <div class="flex items-center justify-end mt-2 pt-2 border-t border-border-subtle">
-                <span class="text-[12px] text-text-tertiary">{{ charCount }} / {{ maxChars }}</span>
+              <div class="create-project-count-row flex items-center justify-end">
+                <span>{{ charCount }} / {{ maxChars }}</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="flex items-center justify-center gap-4 px-8 pb-6">
+        <div class="create-project-actions flex items-center justify-center gap-4">
           <button
-            class="px-8 py-2.5 bg-[#8B5CF6] text-white text-[14px] font-medium rounded-lg hover:bg-[#A78BFA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="create-project-primary"
             :disabled="loading"
             @click="handleConfirm"
           >
             {{ loading ? '创建中...' : '创建' }}
           </button>
           <button
-            class="px-8 py-2.5 bg-transparent border border-border-strong text-text-secondary text-[14px] font-medium rounded-lg hover:border-text-tertiary hover:bg-bg-hover transition-colors"
+            class="create-project-secondary"
             @click="handleClose"
           >
             取消
@@ -125,18 +125,147 @@ const handleClose = () => {
 </template>
 
 <style scoped>
-/* Custom scrollbar for style grid */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 4px;
+.create-project-overlay {
+  background: rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(2px);
 }
-.overflow-y-auto::-webkit-scrollbar-track {
+
+.create-project-modal {
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.18);
+  color: #101828;
+}
+
+.create-project-header {
+  min-height: 64px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 0.96));
+}
+
+.create-project-title {
+  color: #101828;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.create-project-close {
+  color: #667085;
+}
+
+.create-project-close:hover {
+  color: #101828;
+}
+
+.create-project-body {
+  padding: 28px 32px 24px;
+}
+
+.create-project-label {
+  margin-bottom: 8px;
+  color: #475467;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.create-project-field,
+.create-project-textarea-shell {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  background: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.create-project-field {
+  height: 42px;
+  padding: 0 14px;
+  color: #101828;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+}
+
+.create-project-field::placeholder,
+.create-project-textarea::placeholder {
+  color: #98a2b3;
+}
+
+.create-project-field:focus,
+.create-project-textarea-shell:focus-within {
+  border-color: rgba(139, 92, 246, 0.58);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.create-project-textarea-shell {
+  padding: 12px 12px 10px;
+}
+
+.create-project-textarea {
+  height: 132px;
+  resize: none;
+  border: 0;
   background: transparent;
+  color: #101828;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 22px;
+  outline: none;
 }
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #3f4148;
-  border-radius: 2px;
+
+.create-project-count-row {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  color: #667085;
+  font-size: 12px;
+  line-height: 1;
 }
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #555;
+
+.create-project-actions {
+  padding: 0 32px 28px;
+}
+
+.create-project-primary,
+.create-project-secondary {
+  min-width: 94px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.create-project-primary {
+  border: 0;
+  background: #8b5cf6;
+  color: #ffffff;
+}
+
+.create-project-primary:not(:disabled):hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+}
+
+.create-project-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.create-project-secondary {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+  color: #475467;
+}
+
+.create-project-secondary:hover {
+  border-color: rgba(139, 92, 246, 0.38);
+  color: #101828;
+  background: #f8fafc;
 }
 </style>

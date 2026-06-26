@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 import { authApi } from '@/api/auth'
 import GlassCard from '@/components/base/GlassCard.vue'
 import PillButton from '@/components/base/PillButton.vue'
+import AppFooter from '@/components/base/AppFooter.vue'
 
 const props = defineProps<{ code?: string }>()
 
@@ -121,12 +122,12 @@ const handleKeydown = (e: KeyboardEvent, action: 'sendCode' | 'login') => {
       <!-- Logo and title -->
       <div class="text-center mb-8">
         <div class="inline-block mb-4">
-          <div class="w-16 h-16 rounded-lg bg-[#8B5CF6] flex items-center justify-center">
-            <span class="text-2xl font-bold text-white">圆梦</span>
+          <div class="w-16 h-16 rounded-lg overflow-hidden">
+            <img src="@/assets/logo.svg" alt="红鹦鹉漫剧" class="w-full h-full object-cover" />
           </div>
         </div>
-        <h1 class="text-3xl font-bold text-text-primary mb-2">圆梦动画</h1>
-        <p class="text-text-tertiary text-sm">AI 驱动的动画创作平台</p>
+        <h1 class="text-3xl font-bold text-text-primary mb-2">红鹦鹉漫剧</h1>
+        <p class="text-text-tertiary text-sm">AI 驱动的漫剧创作平台</p>
       </div>
 
       <!-- Login form -->
@@ -210,9 +211,7 @@ const handleKeydown = (e: KeyboardEvent, action: 'sendCode' | 'login') => {
       </div>
 
       <!-- Footer text -->
-      <p class="text-text-tertiary text-xs text-center mt-6">
-        © 2024 圆梦动画 · AI Story Studio
-      </p>
+      <AppFooter class="mt-6" />
     </div>
   </div>
 </template>

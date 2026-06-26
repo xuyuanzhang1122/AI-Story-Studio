@@ -4,6 +4,8 @@ import { useToolboxStore } from '@/stores/toolbox'
 import { getModelAspectRatios, getVideoDurations } from '@/constants/toolboxModels'
 import CustomSelect from '@/components/base/CustomSelect.vue'
 import { uploadApi } from '@/api/upload'
+import LobeChatInput from './LobeChatInput.vue'
+import LobeDropdownSelect from './LobeDropdownSelect.vue'
 
 const toolboxStore = useToolboxStore()
 
@@ -46,14 +48,6 @@ const durationOptions = computed(() => {
 const canSend = computed(() => {
   const hasPrompt = toolboxStore.currentInput.prompt.trim().length > 0
   const notGenerating = !toolboxStore.isGenerating
-  console.log('[ChatInput] canSend check:', {
-    hasPrompt,
-    notGenerating,
-    isGenerating: toolboxStore.isGenerating,
-    loading: toolboxStore.loading,
-    pollingJobId: toolboxStore.pollingJobId,
-    promptLength: toolboxStore.currentInput.prompt.length,
-  })
   return hasPrompt && notGenerating
 })
 
@@ -125,32 +119,25 @@ const handleSend = async () => {
     window.$message?.error(error.message || '生成失败')
   }
 }
-
-// 处理快捷键 (Ctrl+Enter发送)
-const handleKeydown = (e: KeyboardEvent) => {
-  if (e.ctrlKey && e.key === 'Enter') {
-    e.preventDefault()
-    handleSend()
-  }
-}
 </script>
 
 <template>
-  <div class="border-t border-border-default bg-bg-elevated p-3">
+  <div class="toolbox-input-panel border-t border-border-default bg-bg-elevated p-3">
     <!-- Controls Row -->
-    <div class="flex items-center gap-2 mb-2">
+    <div class="flex items-center gap-2 mb-3">
       <!-- Type Select -->
-      <CustomSelect
+      <LobeDropdownSelect
         :model-value="toolboxStore.currentInput.type"
         :options="typeOptions"
         @update:model-value="(v) => handleTypeChange(v as 'TEXT' | 'IMAGE' | 'VIDEO')"
       />
 
       <!-- Model Select -->
-      <CustomSelect
-        v-model="toolboxStore.currentInput.model"
+      <LobeDropdownSelect
+        :model-value="toolboxStore.currentInput.model"
         :options="modelOptions"
-        class="flex-1"
+        class-name="is-model"
+        @update:model-value="(v) => toolboxStore.currentInput.model = String(v)"
       />
 
       <!-- Aspect Ratio Select (for IMAGE/VIDEO) -->
@@ -170,12 +157,7 @@ const handleKeydown = (e: KeyboardEvent) => {
     </div>
 
     <!-- Input Area -->
-    <div class="flex items-stretch gap-2">
-      <!-- Debug info -->
-      <div class="hidden">
-        {{ console.log('[ChatInput RENDER] canSend:', canSend, 'isGenerating:', toolboxStore.isGenerating, 'prompt:', toolboxStore.currentInput.prompt.length) }}
-      </div>
-      
+    <div class="flex items-stretch gap-3">
       <!-- Reference Image Upload (for VIDEO only) -->
       <div v-if="toolboxStore.currentInput.type === 'VIDEO'" class="flex-shrink-0">
         <!-- Upload Button -->
@@ -219,33 +201,177 @@ const handleKeydown = (e: KeyboardEvent) => {
         </div>
       </div>
       
-      <textarea
+      <LobeChatInput
         v-model="toolboxStore.currentInput.prompt"
-        class="flex-1 px-3 py-2 rounded bg-bg-subtle border border-border-default text-text-primary text-sm resize-none focus:border-gray-900 focus:outline-none transition-all placeholder-white/30"
-        placeholder="输入提示词... (Ctrl+Enter发送)"
-        rows="2"
-        @keydown="handleKeydown"
+        :can-send="canSend"
+        :loading="toolboxStore.isGenerating"
+        @send="handleSend"
       />
-
-      <!-- Send Button -->
-      <button
-        class="px-5 rounded font-medium text-sm transition-all flex items-center gap-1.5 bg-bg-subtle border border-border-default self-stretch"
-        :class="canSend
-          ? 'text-text-primary hover:bg-bg-hover'
-          : 'text-white/30 cursor-not-allowed'"
-        :disabled="!canSend"
-        @click="handleSend"
-      >
-        <span>发送</span>
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-        </svg>
-      </button>
     </div>
 
-    <!-- Hint -->
-    <div class="mt-1.5 text-xs text-white/30 text-right">
-      Ctrl+Enter 快速发送
-    </div>
   </div>
 </template>
+
+<style scoped>
+.toolbox-input-panel {
+  background:
+    linear-gradient(180deg, rgba(31, 31, 35, 0.92), rgba(18, 18, 20, 0.96)),
+    #151518;
+}
+
+.toolbox-input-panel :deep(.lobe-chat-input-mount),
+.toolbox-input-panel :deep(.ant-app),
+.toolbox-input-panel :deep(.lobe-toolbox-input-shell) {
+  width: 100%;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-input-shell) {
+  min-width: 0;
+  position: relative;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-typewriter) {
+  align-items: center;
+  color: #f8fafc;
+  display: flex;
+  left: 20px;
+  min-height: 24px;
+  pointer-events: none;
+  position: absolute;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.45);
+  top: 20px;
+  z-index: 20;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-typewriter span) {
+  color: inherit !important;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 24px;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-typewriter > span:first-child) {
+  color: #f8fafc !important;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-chat-input) {
+  background: #09090b;
+  border: 1px solid rgba(167, 139, 250, 0.38);
+  border-radius: 10px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.26);
+  min-height: 128px;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  z-index: 1;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-chat-input:focus-within) {
+  border-color: rgba(167, 139, 250, 0.58);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28), 0 0 0 3px rgba(139, 92, 246, 0.14);
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-chat-input textarea) {
+  background: transparent !important;
+  caret-color: #f8fafc;
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  line-height: 24px !important;
+  min-height: 84px !important;
+  padding: 20px 20px 8px !important;
+  position: relative;
+  z-index: 2;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-chat-input textarea::placeholder) {
+  color: transparent !important;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-input-footer) {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  min-height: 42px;
+  padding: 0 12px 10px 20px;
+  position: relative;
+  z-index: 3;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-input-hint) {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-send-button) {
+  align-items: center;
+  background: #f8fafc;
+  border: 0;
+  border-radius: 8px;
+  color: #111114;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  height: 32px;
+  justify-content: center;
+  min-width: 64px;
+  padding: 0 16px;
+  transition: background 0.16s ease, opacity 0.16s ease, transform 0.16s ease;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-send-button:not(:disabled):hover) {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-send-button:disabled) {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.toolbox-input-panel :deep(.lobe-dropdown-select-mount) {
+  flex: none;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-dropdown-button) {
+  align-items: center;
+  background: #24262d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 7px;
+  height: 30px;
+  justify-content: space-between;
+  min-width: 78px;
+  padding: 0 10px 0 12px;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-dropdown-label) {
+  min-width: 0;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-dropdown-caret) {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.toolbox-input-panel :deep(.is-model .lobe-toolbox-dropdown-button) {
+  min-width: 118px;
+}
+
+.toolbox-input-panel :deep(.lobe-toolbox-dropdown-button:hover),
+.toolbox-input-panel :deep(.lobe-toolbox-dropdown-button:focus) {
+  background: #2d3038;
+  border-color: rgba(167, 139, 250, 0.42);
+  color: #fff;
+}
+</style>
