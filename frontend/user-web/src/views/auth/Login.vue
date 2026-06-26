@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 import { authApi } from '@/api/auth'
 import GlassCard from '@/components/base/GlassCard.vue'
 import PillButton from '@/components/base/PillButton.vue'
+import AppFooter from '@/components/base/AppFooter.vue'
 
 const props = defineProps<{ code?: string }>()
 
@@ -210,9 +211,7 @@ const handleKeydown = (e: KeyboardEvent, action: 'sendCode' | 'login') => {
       </div>
 
       <!-- Footer text -->
-      <p class="text-text-tertiary text-xs text-center mt-6">
-        © 2024 红鹦鹉漫剧 · AI Story Studio
-      </p>
+      <AppFooter class="mt-6" />
     </div>
   </div>
 </template>

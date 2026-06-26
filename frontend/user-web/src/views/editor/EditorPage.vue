@@ -14,6 +14,7 @@ import ExportModal from './components/ExportModal.vue'
 import ExportProgressModal from './components/ExportProgressModal.vue'
 import ProjectNameEditor from './components/ProjectNameEditor.vue'
 import LoadingSpinner from '@/components/base/LoadingSpinner.vue'
+import AppFooter from '@/components/base/AppFooter.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -284,7 +285,7 @@ const handleExportScripts = () => {
         <!-- Brand Logo -->
         <div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" @click="handleBack">
           <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-            <img src="@/assets/images/9724166f3c32d4dac68c7615c5e5de2f.jpg" alt="Logo" class="w-full h-full object-cover" />
+            <img src="@/assets/logo.svg" alt="红鹦鹉漫剧" class="w-full h-full object-cover" />
           </div>
           <span class="text-lg font-bold text-text-primary leading-none">红鹦鹉漫剧</span>
         </div>
@@ -414,6 +415,12 @@ const handleExportScripts = () => {
             <path d="M32.143 329.992l220.444 220.444q7.749 7.751 17.879 11.946t21.092 4.195q5.428 0 10.753-1.059t10.338-3.135 9.528-5.093 8.349-6.853q3.841-3.839 6.855-8.351t5.092-9.528 3.135-10.338 1.058-10.753q0-10.962-4.193-21.091t-11.947-17.88l-126.364-126.364h415.541q113.923 0 196.313 81.531 81.763 80.911 81.763 191.544 0 114.895-80.011 196.464t-193.399 81.569h-167.48q-5.428 0-10.753 1.058t-10.338 3.135-9.528 5.092-8.349 6.855q-3.836 3.836-6.855 8.349-3.014 4.513-5.092 9.528t-3.135 10.338-1.058 10.753 1.058 10.753 3.135 10.338 5.092 9.528q3.019 4.513 6.855 8.349t8.349 6.855q4.513 3.014 9.528 5.092t10.338 3.135 10.753 1.058h167.48q159.671 0 272.087-114.608 111.545-113.722 111.545-273.648 0-156.626-114.457-269.89-114.602-113.408-273.84-113.408h-415.541l126.364-126.364q7.754-7.751 11.947-17.88t4.193-21.091q0-5.427-1.058-10.753t-3.135-10.338-5.092-9.527-6.855-8.351q-3.836-3.837-8.349-6.853t-9.528-5.093-10.338-3.135-10.753-1.059q-10.961 0-21.092 4.195t-17.879 11.946l-0.023 0.021-220.423 220.424q-7.754 7.751-11.947 17.88t-4.193 21.091 4.193 21.091 11.947 17.88z"></path>
           </svg>
         </button>
+
+        <!-- Divider -->
+        <div class="w-px h-6 bg-border-default"></div>
+
+        <!-- 版权署名 -->
+        <AppFooter compact class="whitespace-nowrap" />
       </div>
     </header>
 

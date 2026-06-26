@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { authApi } from '@/api/auth'
 import { NModal, NInput, NUpload, type UploadFileInfo } from 'naive-ui'
+import AppFooter from '@/components/base/AppFooter.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -202,6 +203,9 @@ const handleSaveProfile = async () => {
         </svg>
         退出登录
       </button>
+
+      <!-- 版权页脚 -->
+      <AppFooter class="mt-3" />
     </div>
 
     <!-- 用户信息编辑弹窗 -->
